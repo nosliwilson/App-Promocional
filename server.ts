@@ -49,6 +49,20 @@ async function startServer() {
     next();
   };
 
+  const requireRoleEditor = (req: any, res: any, next: any) => {
+    if (req.role !== 'admin' && req.role !== 'editor') {
+      return res.status(403).json({ error: "Forbidden: Editor or Admin role required" });
+    }
+    next();
+  };
+
+  const requireRoleViewer = (req: any, res: any, next: any) => {
+    if (req.role !== 'admin' && req.role !== 'editor' && req.role !== 'viewer') {
+      return res.status(403).json({ error: "Forbidden: Viewer, Editor or Admin role required" });
+    }
+    next();
+  };
+
   // API Routes (Public)
   app.get("/api/settings", async (req, res) => {
     try {
@@ -116,8 +130,8 @@ async function startServer() {
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
 
-      const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'user' }, JWT_SECRET, { expiresIn: '8h' });
-      res.json({ token, username: user.username, role: user.role || 'user' });
+      const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'viewer' }, JWT_SECRET, { expiresIn: '8h' });
+      res.json({ token, username: user.username, role: user.role || 'viewer' });
     } catch (e) {
       res.status(500).json({ error: "Login failed" });
     }
@@ -156,10 +170,28 @@ async function startServer() {
 
       const hash = await bcrypt.hash(password, 10);
       const { createUser } = await import("./src/db/db.js");
-      await createUser(username, hash, role === 'admin' ? 'admin' : 'user');
+      await createUser(username, hash, role);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", authenticateAdmin, requireRoleAdmin, async (req: any, res: any) => {
+    try {
+      const { username, password, role } = req.body;
+      const { getDb } = await import("./src/db/db.js");
+      const d = await getDb();
+      
+      if (password && password.length >= 4) {
+        const hash = await bcrypt.hash(password, 10);
+        await d.run("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?", [username, hash, role, req.params.id]);
+      } else {
+        await d.run("UPDATE users SET username = ?, role = ? WHERE id = ?", [username, role, req.params.id]);
+      }
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to update user" });
     }
   });
 
@@ -178,7 +210,7 @@ async function startServer() {
 
 
   // API Routes (Protected Admin)
-  app.post("/api/settings", authenticateAdmin, async (req, res) => {
+  app.post("/api/settings", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       for (const [k, v] of Object.entries(req.body)) {
         await updateSetting(k, v);
@@ -189,7 +221,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/participants", authenticateAdmin, async (req, res) => {
+  app.get("/api/admin/participants", authenticateAdmin, requireRoleViewer, async (req, res) => {
     try {
       const parts = await getAllParticipants();
       res.json(parts);
@@ -198,7 +230,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/export", authenticateAdmin, async (req, res) => {
+  app.get("/api/admin/export", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       const parts = await getAllParticipants();
       const settings = await getSettings();
@@ -239,7 +271,7 @@ async function startServer() {
   });
 
   // Prizes
-  app.get("/api/admin/prizes", authenticateAdmin, async (req, res) => {
+  app.get("/api/admin/prizes", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       const prizes = await getAllPrizes();
       res.json(prizes);
@@ -248,7 +280,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/prizes", authenticateAdmin, async (req, res) => {
+  app.post("/api/admin/prizes", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       await addPrize(req.body);
       res.json({ success: true });
@@ -257,7 +289,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/admin/prizes/:id", authenticateAdmin, async (req, res) => {
+  app.put("/api/admin/prizes/:id", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       await updatePrize(parseInt(req.params.id), req.body);
       res.json({ success: true });
@@ -266,7 +298,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/admin/prizes/:id", authenticateAdmin, async (req, res) => {
+  app.delete("/api/admin/prizes/:id", authenticateAdmin, requireRoleEditor, async (req, res) => {
     try {
       await deletePrize(parseInt(req.params.id));
       res.json({ success: true });
@@ -278,7 +310,7 @@ async function startServer() {
   // Backup & Restore
   // Note: For simplicity with browser downloads, we might want to check a token via query param instead of header
   // Or handle it in frontend by fetching blob. We will stick to header here and fetch via blob in frontend.
-  app.get("/api/admin/backup", authenticateAdmin, async (req, res) => {
+  app.get("/api/admin/backup", authenticateAdmin, requireRoleAdmin, async (req, res) => {
     try {
       const dbPath = await backupDb();
       res.download(dbPath, 'database.sqlite', async (err) => {
@@ -289,7 +321,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/restore", authenticateAdmin, upload.single('dbFile'), async (req, res) => {
+  app.post("/api/admin/restore", authenticateAdmin, requireRoleAdmin, upload.single('dbFile'), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
       const dbPath = await backupDb(); 
@@ -302,7 +334,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/clear", authenticateAdmin, async (req, res) => {
+  app.post("/api/admin/clear", authenticateAdmin, requireRoleAdmin, async (req, res) => {
     try {
       await clearDatabase();
       res.json({ success: true });

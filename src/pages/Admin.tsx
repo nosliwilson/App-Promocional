@@ -26,13 +26,17 @@ export default function Admin() {
 
   // Account Form State
   const [accountForm, setAccountForm] = useState({ newPassword: '', confirmPassword: '' });
-  const [newUserForm, setNewUserForm] = useState({ username: '', password: '', role: 'user' });
+  const [newUserForm, setNewUserForm] = useState({ username: '', password: '', role: 'viewer' });
+  const [editingUser, setEditingUser] = useState<any>(null);
+
+  const isAdmin = role === 'admin';
+  const isEditor = role === 'admin' || role === 'editor';
 
   useEffect(() => {
     if (token) {
       fetchData();
     }
-  }, [token]);
+  }, [token, role]);
 
   const apiHeaders = {
     'Content-Type': 'application/json',
@@ -85,20 +89,26 @@ export default function Admin() {
       const p = [
         fetch('/api/admin/participants', { headers: apiHeaders }),
         fetch('/api/settings'),
-        fetch('/api/admin/prizes', { headers: apiHeaders })
       ];
       
-      const [partsRes, setsRes, prizesRes] = await Promise.all(p);
+      if (isEditor) {
+        p.push(fetch('/api/admin/prizes', { headers: apiHeaders }));
+      }
       
-      if (partsRes.status === 401 || prizesRes.status === 401) {
+      const responses = await Promise.all(p);
+      const partsRes = responses[0];
+      const setsRes = responses[1];
+      const prizesRes = responses[2];
+      
+      if (partsRes.status === 401 || (prizesRes && prizesRes.status === 401)) {
         logout();
         return;
       }
 
       setParticipants(await partsRes.json());
       setSettings(await setsRes.json());
-      setPrizes(await prizesRes.json());
-      if (role === 'admin') fetchUsers();
+      if (prizesRes) setPrizes(await prizesRes.json());
+      if (isAdmin) fetchUsers();
     } catch (e) {
       console.error(e);
     } finally {
@@ -305,7 +315,7 @@ export default function Admin() {
 
   const createAdminUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newUserForm.password.length < 4) {
+    if (newUserForm.password && newUserForm.password.length < 4) {
       toast.error("A senha deve ter no mínimo 4 caracteres");
       return;
     }
@@ -318,11 +328,33 @@ export default function Admin() {
       });
       if (res.ok) {
         toast.success("Novo usuário criado com sucesso!");
-        setNewUserForm({ username: '', password: '', role: 'user' });
+        setNewUserForm({ username: '', password: '', role: 'viewer' });
         fetchUsers();
       } else {
         const data = await res.json();
         toast.error("Erro ao criar usuário: " + (data.error || 'Erro desconhecido'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/users/' + editingUser.id, {
+        method: 'PUT',
+        headers: apiHeaders,
+        body: JSON.stringify(editingUser)
+      });
+      if (res.ok) {
+        toast.success("Usuário atualizado com sucesso!");
+        setEditingUser(null);
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        toast.error("Erro ao atualizar usuário: " + (data.error || 'Erro desconhecido'));
       }
     } finally {
       setLoading(false);
@@ -381,26 +413,31 @@ export default function Admin() {
               K-TOUR<br/>ADMIN
             </h1>
             <p className="text-slate-400 font-medium italic text-xs mt-2">Olá, {username}</p>
+            <p className="text-pink-500/80 font-bold uppercase text-[9px] tracking-widest mt-1">Nível: {role}</p>
           </div>
           
           <button onClick={() => setActiveTab('participants')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'participants' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
             <Users className="w-4 h-4 mr-3" /> <span>Inscritos</span>
           </button>
 
-          <button onClick={() => setActiveTab('prizes')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'prizes' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
-            <Gift className="w-4 h-4 mr-3" /> <span>Prêmios</span>
-          </button>
+          {isEditor && (
+            <>
+              <button onClick={() => setActiveTab('prizes')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'prizes' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
+                <Gift className="w-4 h-4 mr-3" /> <span>Prêmios</span>
+              </button>
 
-          <button onClick={() => setActiveTab('form')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'form' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
-            <SettingsIcon className="w-4 h-4 mr-3" /> <span>Formulário Customizado</span>
-          </button>
+              <button onClick={() => setActiveTab('form')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'form' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
+                <ListTree className="w-4 h-4 mr-3" /> <span>Formulário</span>
+              </button>
 
-          <button onClick={() => setActiveTab('settings')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'settings' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
-            <SettingsIcon className="w-4 h-4 mr-3" /> <span>Configurações</span>
-          </button>
+              <button onClick={() => setActiveTab('settings')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'settings' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
+                <SettingsIcon className="w-4 h-4 mr-3" /> <span>Configurações</span>
+              </button>
+            </>
+          )}
 
           <button onClick={() => setActiveTab('account')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'account' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
-            <KeyRound className="w-4 h-4 mr-3" /> <span>Conta</span>
+            <KeyRound className="w-4 h-4 mr-3" /> <span>Conta {isAdmin ? '& Usuários' : ''}</span>
           </button>
 
           <Link to="/qr" className="flex items-center px-4 py-3 rounded-full hover:bg-white/5 text-slate-400 transition-all text-xs font-bold uppercase tracking-widest">
@@ -671,12 +708,13 @@ export default function Admin() {
                       <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Senha</label>
                       <input type="password" required minLength={4} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" />
                     </div>
-                    {role === 'admin' && (
+                    {isAdmin && (
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Cargo</label>
                         <select value={newUserForm.role} onChange={e => setNewUserForm({...newUserForm, role: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all">
-                          <option value="user" className="bg-[#1a1a24]">Usuário (Leitura)</option>
-                          <option value="admin" className="bg-[#1a1a24]">Administrador</option>
+                          <option value="viewer" className="bg-[#1a1a24]">Visualização (Sorteados)</option>
+                          <option value="editor" className="bg-[#1a1a24]">Configuração (Prêmios/Forms)</option>
+                          <option value="admin" className="bg-[#1a1a24]">Administrador Geral</option>
                         </select>
                       </div>
                     )}
@@ -687,7 +725,35 @@ export default function Admin() {
                 </div>
               </div>
 
-              {role === 'admin' && (
+              {editingUser && (
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 mt-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-pink-400">Editar Usuário: {editingUser.username}</h3>
+                    <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-white/10 rounded-full"><X className="w-4 h-4" /></button>
+                  </div>
+                  <form onSubmit={updateUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Usuário</label>
+                      <input type="text" value={editingUser.username} onChange={e => setEditingUser({...editingUser, username: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded px-4 py-2 text-sm text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Nova Senha (Opcional)</label>
+                      <input type="password" placeholder="Deixe em branco p/ manter" onChange={e => setEditingUser({...editingUser, password: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded px-4 py-2 text-sm text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cargo</label>
+                      <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded px-4 py-2 text-sm text-white">
+                        <option value="viewer">Visualização</option>
+                        <option value="editor">Configuração</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="md:col-span-3 py-3 bg-pink-500 rounded-xl font-bold text-xs uppercase tracking-widest">Salvar Alterações</button>
+                  </form>
+                </div>
+              )}
+
+              {isAdmin && (
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 mt-6">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Usuários do Sistema</h3>
                   <div className="overflow-x-auto">
@@ -697,22 +763,32 @@ export default function Admin() {
                           <th className="pb-3 px-4 font-bold">ID</th>
                           <th className="pb-3 px-4 font-bold">Usuário</th>
                           <th className="pb-3 px-4 font-bold">Cargo</th>
-                          <th className="pb-3 px-4 font-bold text-right">Ação</th>
+                          <th className="pb-3 px-4 font-bold text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {users.map(u => (
                           <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
-                            <td className="py-4 px-4">{u.id}</td>
-                            <td className="py-4 px-4 font-bold">{u.username.toUpperCase()}</td>
-                            <td className="py-4 px-4 text-xs font-mono bg-white/10 inline-block mt-3 ml-4 rounded px-2 py-1 text-slate-300">{u.role}</td>
-                            <td className="py-4 px-4 text-right">
+                            <td className="py-4 px-4 text-slate-500">{u.id}</td>
+                            <td className="py-4 px-4 font-bold">{u.username}</td>
+                            <td className="py-4 px-4">
+                              <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-pink-500/20 text-pink-400' : u.role === 'editor' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right space-x-2">
+                              <button onClick={() => setEditingUser({ ...u, password: '' })} className="p-2 text-slate-500 hover:text-pink-400 transition-colors">
+                                <Edit className="w-4 h-4" />
+                              </button>
                               {u.username !== username && (
                                 <button onClick={async () => {
                                   if(!confirm('Certeza que deseja remover este usuário?')) return;
                                   try {
-                                    await fetch('/api/admin/users/' + u.id, { method: 'DELETE', headers: apiHeaders });
-                                    fetchUsers();
+                                    const res = await fetch('/api/admin/users/' + u.id, { method: 'DELETE', headers: apiHeaders });
+                                    if(res.ok) {
+                                      toast.success("Usuário removido");
+                                      fetchUsers();
+                                    }
                                   } catch(e) {}
                                 }} className="p-2 text-slate-500 hover:text-red-400 transition-colors">
                                   <Trash2 className="w-4 h-4" />
@@ -737,147 +813,188 @@ export default function Admin() {
               </div>
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8">
-                <form onSubmit={saveSettings} className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Título do App</label>
-                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.appTitle || ''} onChange={e => setSettings({...settings, appTitle: e.target.value})} />
+                <form onSubmit={saveSettings} className="space-y-8">
+                  {/* Restrição de Acesso */}
+                  <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded-2xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-pink-400">Restrição de Smartphone</h3>
+                        <p className="text-xs text-slate-400">Bloquear acesso de computadores/telas largas</p>
+                      </div>
+                      <button type="button" onClick={() => setSettings({...settings, mobileOnly: !settings.mobileOnly})} className={`w-12 h-6 rounded-full transition-all relative ${settings.mobileOnly ? 'bg-pink-500' : 'bg-slate-700'}`}>
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.mobileOnly ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cabeçalho */}
+                  <div className="space-y-6 pt-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Identidade e Cabeçalho</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Title Config */}
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Título Principal</label>
+                        <select value={settings.titleType || 'text'} onChange={e => setSettings({...settings, titleType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-xs text-white">
+                          <option value="text">Texto</option>
+                          <option value="image">Imagem/Logo</option>
+                        </select>
+                        {settings.titleType === 'image' ? (
+                          <div className="space-y-2">
+                             <input type="file" accept="image/*" className="text-[10px] text-slate-500" onChange={(e) => handleImageUpload('titleImage', e)} />
+                             {settings.titleImage && <img src={settings.titleImage} alt="Title Logo" className="h-12 object-contain bg-black/20 p-1 rounded" />}
+                          </div>
+                        ) : (
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" value={settings.titleText || ''} placeholder="STRAY KIDS" onChange={e => setSettings({...settings, titleText: e.target.value})} />
+                        )}
+                      </div>
+
+                      {/* Subtitle Config */}
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Subtítulo</label>
+                        <select value={settings.subtitleType || 'text'} onChange={e => setSettings({...settings, subtitleType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-xs text-white">
+                          <option value="text">Texto</option>
+                          <option value="image">Imagem</option>
+                        </select>
+                        {settings.subtitleType === 'image' ? (
+                          <div className="space-y-2">
+                             <input type="file" accept="image/*" className="text-[10px] text-slate-500" onChange={(e) => handleImageUpload('subtitleImage', e)} />
+                             {settings.subtitleImage && <img src={settings.subtitleImage} alt="Subtitle Logo" className="h-8 object-contain bg-black/20 p-1 rounded" />}
+                          </div>
+                        ) : (
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" value={settings.subtitleText || ''} placeholder="Excursão 2024" onChange={e => setSettings({...settings, subtitleText: e.target.value})} />
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Texto: Pergunta do Ingresso</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Pergunta do Ingresso</label>
                     <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.ticketQuestionText || ''} onChange={e => setSettings({...settings, ticketQuestionText: e.target.value})} />
                   </div>
 
-                  <div className="border-t border-white/10 pt-6">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Mensagens Personalizadas</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Título de Sucesso (Ex: Inscrição Concluída)</label>
-                        <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.noTicketTitle || ''} placeholder="Inscrição Concluída!" onChange={e => setSettings({...settings, noTicketTitle: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Mensagem (Quando diz não ter ingresso)</label>
-                        <textarea className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all text-sm" rows={2} value={settings.noTicketMessage || ''} placeholder="Obrigado por participar! Fique ligado nas nossas redes." onChange={e => setSettings({...settings, noTicketMessage: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Mensagem de Vitória (Use [PRIZE])</label>
-                        <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.winMessage || ''} placeholder="PARABÉNS! Você ganhou R$ [PRIZE] de desconto em nossa excursão!" onChange={e => setSettings({...settings, winMessage: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Mensagem sem Prêmio</label>
-                        <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.loseMessage || ''} placeholder="Que pena! Você não ganhou desta vez." onChange={e => setSettings({...settings, loseMessage: e.target.value})} />
-                      </div>
+                  {/* Estilização Geral */}
+                  <div className="space-y-6 pt-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Cores e Estilos</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div>
+                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Cor de Destaque (Primária)</label>
+                         <div className="flex items-center gap-4">
+                            <input type="color" className="w-12 h-12 bg-transparent border-none outline-none cursor-pointer" value={settings.primaryColor || '#ec4899'} onChange={e => setSettings({...settings, primaryColor: e.target.value})} />
+                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono" value={settings.primaryColor || '#ec4899'} onChange={e => setSettings({...settings, primaryColor: e.target.value})} />
+                         </div>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor Título</label>
+                          <input type="color" className="w-full h-8 cursor-pointer rounded mb-2" value={settings.titleColor || '#ffffff'} onChange={e => setSettings({...settings, titleColor: e.target.value})} />
+                          <input type="range" min="0" max="100" value={settings.titleOpacity ?? 100} onChange={e => setSettings({...settings, titleOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" title="Opacidade" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor Perguntas</label>
+                          <input type="color" className="w-full h-8 cursor-pointer rounded mb-2" value={settings.questionColor || '#ffffff'} onChange={e => setSettings({...settings, questionColor: e.target.value})} />
+                          <input type="range" min="0" max="100" value={settings.questionOpacity ?? 100} onChange={e => setSettings({...settings, questionOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" title="Opacidade" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor Textos</label>
+                          <input type="color" className="w-full h-8 cursor-pointer rounded mb-2" value={settings.textColor || '#94a3b8'} onChange={e => setSettings({...settings, textColor: e.target.value})} />
+                          <input type="range" min="0" max="100" value={settings.textOpacity ?? 100} onChange={e => setSettings({...settings, textOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" title="Opacidade" />
+                        </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Links Sociais (JSON)</label>
-                    <textarea className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all font-mono text-sm" rows={4} value={settings.socialLinks ? JSON.stringify(settings.socialLinks, null, 2) : ''} onChange={e => {
-                        try { setSettings({...settings, socialLinks: JSON.parse(e.target.value)}); } catch(err) { if (e.target.value === '') setSettings({...settings, socialLinks: {}}); }
-                      }} />
+                  {/* FUNDO DA PÁGINA */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Fundo Geral da Página (Externo)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <select value={settings.bgType || 'solid'} onChange={e => setSettings({...settings, bgType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white text-sm">
+                        <option value="solid">Cor sólida (Primária)</option>
+                        <option value="gradient">Gradiente CSS</option>
+                        <option value="image">Imagem Personalizada</option>
+                      </select>
+                      {settings.bgType === 'gradient' && (
+                        <input type="text" className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-xs" value={settings.bgGradient || ''} placeholder="linear-gradient(...)" onChange={e => setSettings({...settings, bgGradient: e.target.value})} />
+                      )}
+                      {settings.bgType === 'image' && (
+                        <input type="file" accept="image/*" className="text-xs self-center" onChange={(e) => handleImageUpload('backgroundImage', e)} />
+                      )}
+                    </div>
                   </div>
 
-                  <div className="border-t border-white/10 pt-6">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Personalização Visual</h3>
-                    <div className="space-y-6">
-                      
-                      {/* Cor Primária */}
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 mt-4">Cor Primária (Hexadecimal)</label>
-                        <div className="flex items-center gap-4">
-                          <input type="color" className="w-12 h-12 bg-transparent border-none outline-none cursor-pointer" value={settings.primaryColor || '#a855f7'} onChange={e => setSettings({...settings, primaryColor: e.target.value})} />
-                          <input type="text" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all" value={settings.primaryColor || '#a855f7'} onChange={e => setSettings({...settings, primaryColor: e.target.value})} placeholder="#a855f7"/>
-                        </div>
-                      </div>
-
-                      {/* Cores de Texto e Opacidade */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-white/5 border border-white/10 rounded-2xl">
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor do Título</label>
-                          <div className="flex items-center gap-2 mb-2">
-                            <input type="color" className="w-8 h-8 rounded shrink-0 cursor-pointer" value={settings.titleColor || '#ffffff'} onChange={e => setSettings({...settings, titleColor: e.target.value})} />
-                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-1 text-xs text-white" value={settings.titleColor || '#ffffff'} onChange={e => setSettings({...settings, titleColor: e.target.value})} />
-                          </div>
-                          <label className="block text-[10px] text-slate-500">Opacidade: {settings.titleOpacity ?? 100}%</label>
-                          <input type="range" min="0" max="100" value={settings.titleOpacity ?? 100} onChange={e => setSettings({...settings, titleOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor das Perguntas</label>
-                          <div className="flex items-center gap-2 mb-2">
-                            <input type="color" className="w-8 h-8 rounded shrink-0 cursor-pointer" value={settings.questionColor || '#cbd5e1'} onChange={e => setSettings({...settings, questionColor: e.target.value})} />
-                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-1 text-xs text-white" value={settings.questionColor || '#cbd5e1'} onChange={e => setSettings({...settings, questionColor: e.target.value})} />
-                          </div>
-                          <label className="block text-[10px] text-slate-500">Opacidade: {settings.questionOpacity ?? 100}%</label>
-                          <input type="range" min="0" max="100" value={settings.questionOpacity ?? 100} onChange={e => setSettings({...settings, questionOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Cor dos Textos</label>
-                          <div className="flex items-center gap-2 mb-2">
-                            <input type="color" className="w-8 h-8 rounded shrink-0 cursor-pointer" value={settings.textColor || '#94a3b8'} onChange={e => setSettings({...settings, textColor: e.target.value})} />
-                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-1 text-xs text-white" value={settings.textColor || '#94a3b8'} onChange={e => setSettings({...settings, textColor: e.target.value})} />
-                          </div>
-                          <label className="block text-[10px] text-slate-500">Opacidade: {settings.textOpacity ?? 100}%</label>
-                          <input type="range" min="0" max="100" value={settings.textOpacity ?? 100} onChange={e => setSettings({...settings, textOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" />
-                        </div>
-                      </div>
-
-                      {/* Fundo */}
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Transparência do Painel (Opacidade)</label>
-                            <div className="flex items-center gap-4">
-                              <input type="range" min="0" max="100" value={settings.bgOverlayOpacity ?? 80} onChange={e => setSettings({...settings, bgOverlayOpacity: parseInt(e.target.value)})} className="flex-1 accent-pink-500" />
-                              <span className="text-xs text-white font-mono w-12 text-right">{settings.bgOverlayOpacity ?? 80}%</span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Intensidade do Desfoque (Blur)</label>
-                            <div className="flex items-center gap-4">
-                              <input type="range" min="0" max="40" value={settings.bgBlurAmount ?? 10} onChange={e => setSettings({...settings, bgBlurAmount: parseInt(e.target.value)})} className="flex-1 accent-pink-500" />
-                              <span className="text-xs text-white font-mono w-12 text-right">{settings.bgBlurAmount ?? 10}px</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Tipo de Fundo Principal</label>
-                          <select value={settings.bgType || 'solid'} onChange={e => setSettings({...settings, bgType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all">
-                            <option value="solid">Apenas Cor Primária</option>
-                            <option value="gradient">Gradiente CSS Personalizado</option>
-                            <option value="image">Imagem (Upload)</option>
+                  {/* FUNDO DO APLICATIVO */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Fundo da Área do App (Smartphone)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="space-y-4">
+                          <label className="block text-[10px] font-bold text-slate-400">Tipo de Fundo</label>
+                          <select value={settings.appBgType || 'solid'} onChange={e => setSettings({...settings, appBgType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-white text-xs">
+                            <option value="solid">Transparente / Cor do Sistema</option>
+                            <option value="gradient">Gradiente CSS</option>
+                            <option value="image">Imagem</option>
                           </select>
+                          {settings.appBgType === 'gradient' && <input type="text" className="w-full bg-[#1a1a24] border border-white/10 rounded px-2 py-2 text-white text-[10px] font-mono" value={settings.appBgGradient || ''} placeholder="linear-gradient(...)" onChange={e => setSettings({...settings, appBgGradient: e.target.value})} />}
+                          {settings.appBgType === 'image' && <input type="file" accept="image/*" className="text-[10px]" onChange={(e) => handleImageUpload('appBgImage', e)} />}
+                       </div>
+                       <div className="space-y-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">Opacidade (Efeito Vidro)</label>
+                            <input type="range" min="0" max="100" value={settings.bgOverlayOpacity ?? 80} onChange={e => setSettings({...settings, bgOverlayOpacity: parseInt(e.target.value)})} className="w-full accent-pink-500" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">Blur Amount (Desfoque)</label>
+                            <input type="range" min="0" max="40" value={settings.bgBlurAmount ?? 10} onChange={e => setSettings({...settings, bgBlurAmount: parseInt(e.target.value)})} className="w-full accent-pink-500" />
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Perguntas e Texto */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 underline decoration-slate-800 underline-offset-4">Mensagens Personalizadas</h3>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Título Sucesso</label>
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs" value={settings.noTicketTitle || ''} onChange={e => setSettings({...settings, noTicketTitle: e.target.value})} />
                         </div>
-                        
-                        {settings.bgType === 'gradient' && (
-                          <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-300 mb-2">Código de Gradiente CSS</label>
-                            <input type="text" className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 outline-none transition-all font-mono text-sm" value={settings.bgGradient || 'linear-gradient(135deg, #a855f7, #ec4899)'} onChange={e => setSettings({...settings, bgGradient: e.target.value})} placeholder="ex: linear-gradient(135deg, #a855f7, #ec4899)" />
-                          </div>
-                        )}
-
-                        {settings.bgType === 'image' && (
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-2">Selecione o Plano de Fundo</label>
-                            <input type="file" accept="image/*" className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white" onChange={(e) => handleImageUpload('backgroundImage', e)} />
-                            {settings.backgroundImage && <img src={settings.backgroundImage} alt="BG Preview" className="h-24 mt-3 object-cover rounded-xl border border-white/10" />}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Logo */}
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                        <label className="block text-xs font-medium text-slate-500 mb-2">Logo (Imagem Opcional topo do App)</label>
-                        <input type="file" accept="image/*" className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white" onChange={(e) => handleImageUpload('logoImage', e)} />
-                        {settings.logoImage && <img src={settings.logoImage} alt="Logo Preview" className="h-16 mt-3 object-contain bg-black/20 p-2 rounded" />}
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Mensagem (Sem Ingresso)</label>
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs" value={settings.noTicketMessage || ''} onChange={e => setSettings({...settings, noTicketMessage: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Mensagem Vitória ([PRIZE])</label>
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs" value={settings.winMessage || ''} onChange={e => setSettings({...settings, winMessage: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Mensagem Derrota</label>
+                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs" value={settings.loseMessage || ''} onChange={e => setSettings({...settings, loseMessage: e.target.value})} />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <button type="submit" className="w-full py-4 bg-pink-500 rounded-2xl font-black text-sm shadow-xl shadow-pink-500/20 hover:bg-pink-400 transition-all uppercase tracking-widest mt-4">
-                    Salvar Configurações
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Links Sociais (JSON)</label>
+                    <textarea 
+                      className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-xs focus:border-pink-500 outline-none transition-all" 
+                      rows={3} 
+                      value={typeof settings.socialLinks === 'object' ? JSON.stringify(settings.socialLinks, null, 2) : settings.socialLinks} 
+                      onChange={e => {
+                        try {
+                          const parsed = JSON.parse(e.target.value);
+                          setSettings({...settings, socialLinks: parsed});
+                        } catch {
+                          setSettings({...settings, socialLinks: e.target.value});
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <button type="submit" disabled={loading} className="w-full py-5 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl font-black text-sm shadow-xl shadow-pink-500/20 hover:opacity-90 transition-all uppercase tracking-widest mt-10 flex items-center justify-center gap-2">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar Todas as Configurações'}
                   </button>
                 </form>
 
