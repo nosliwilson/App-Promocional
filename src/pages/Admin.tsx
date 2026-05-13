@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, ShieldAlert } from 'lucide-react';
+import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import * as motion from "motion/react-client";
 import { toast } from 'sonner';
@@ -465,7 +465,7 @@ export default function Admin() {
 
           {isAdmin && (
             <button onClick={() => setActiveTab('security')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'security' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
-              <ShieldAlert className="w-4 h-4 mr-3" /> <span>Segurança</span>
+              <Shield className="w-4 h-4 mr-3" /> <span>Segurança</span>
             </button>
           )}
 
@@ -506,7 +506,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="text-slate-200">
-                    {participants.map(p => (
+                    {Array.isArray(participants) && participants.map(p => p && (
                       <React.Fragment key={p.id}>
                         <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="py-3 px-2">
@@ -528,7 +528,7 @@ export default function Admin() {
                             )}
                           </td>
                           <td className="py-3 px-2 text-slate-500 text-xs whitespace-nowrap">
-                            {new Date(p.createdAt).toLocaleString()}
+                            {p.createdAt ? new Date(p.createdAt).toLocaleString() : '-'}
                           </td>
                         </tr>
                         {p.customData && p.customData !== '{}' && (
@@ -545,7 +545,7 @@ export default function Admin() {
                                     }
                                   })()
                                 ).map(([k,v]: any) => {
-                                const field = formFields.find(f => f.id === k);
+                                const field = Array.isArray(formFields) ? formFields.find(f => f && f.id === k) : null;
                                 const label = field ? field.label : k;
                                 return <span key={k} className="mr-6 inline-block"><span className="text-slate-500">{label}:</span> <span className="text-white">{Array.isArray(v) ? v.join(', ') : (v || '-')}</span></span>
                               })}
@@ -876,7 +876,7 @@ export default function Admin() {
                 </div>
                 <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                   <h4 className="text-xs font-bold text-blue-300 uppercase mb-2 flex items-center">
-                    <ShieldAlert className="w-4 h-4 mr-2" /> Dica de Configuração (Fail2Ban)
+                    <Shield className="w-4 h-4 mr-2" /> Dica de Configuração (Fail2Ban)
                   </h4>
                   <p className="text-[11px] text-slate-300 leading-relaxed">
                     Configure seu Fail2Ban para monitorar o arquivo <code className="bg-black/40 px-1 rounded text-pink-400">security.log</code> na raiz do projeto. 

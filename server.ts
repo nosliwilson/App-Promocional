@@ -11,7 +11,7 @@ import { logSecurityEvent, getSecurityLogs, clearSecurityLogs } from "./src/lib/
 import { 
   getDb, getSettings, updateSetting, addParticipant, 
   getAllParticipants, getParticipantByEmail, backupDb, clearDatabase,
-  getUserByUsername, updateUserPassword,
+  getUserByUsername, updateUserPassword, getAllUsers, createUser,
   getAllPrizes, addPrize, updatePrize, deletePrize, incrementPrizeRedeemed
 } from "./src/db/db.js";
 
@@ -28,7 +28,6 @@ async function startServer() {
   // Custom headers for security
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     next();
   });
@@ -170,7 +169,6 @@ async function startServer() {
 
   app.get("/api/admin/users", authenticateAdmin, requireRoleAdmin, async (req: any, res: any) => {
     try {
-      const { getAllUsers } = await import("./src/db/db.js");
       const users = await getAllUsers();
       res.json(users);
     } catch(e) {
@@ -187,7 +185,6 @@ async function startServer() {
       if (existing) return res.status(400).json({ error: "Username already exists" });
 
       const hash = await bcrypt.hash(password, 10);
-      const { createUser } = await import("./src/db/db.js");
       await createUser(username, hash, role);
       res.json({ success: true });
     } catch (e) {
@@ -198,7 +195,6 @@ async function startServer() {
   app.put("/api/admin/users/:id", authenticateAdmin, requireRoleAdmin, async (req: any, res: any) => {
     try {
       const { username, password, role } = req.body;
-      const { getDb } = await import("./src/db/db.js");
       const d = await getDb();
       
       if (password && password.length >= 4) {
@@ -218,7 +214,6 @@ async function startServer() {
       if (parseInt(req.params.id) === req.userId) {
         return res.status(400).json({ error: "Cannot delete yourself" });
       }
-      const { deleteUser } = await import("./src/db/db.js");
       await deleteUser(parseInt(req.params.id));
       res.json({ success: true });
     } catch (e) {
