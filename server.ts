@@ -88,9 +88,27 @@ async function startServer() {
     try {
       const { name, socialName, phone, email, hasTicket, customData } = req.body;
       
+      const settings = await getSettings();
+      const rescueQuestionId = settings.rescueQuestionId;
+      const rescueAnswerValue = settings.rescueAnswerValue;
+      
+      let isEligible = hasTicket;
+      
+      // Rescue Logic
+      if (!isEligible && rescueQuestionId && rescueAnswerValue && customData) {
+        const answer = customData[rescueQuestionId];
+        if (Array.isArray(answer)) {
+          if (answer.some((a: string) => a.toLowerCase().trim() === rescueAnswerValue.toLowerCase().trim())) {
+            isEligible = true;
+          }
+        } else if (answer && answer.toString().toLowerCase().trim() === rescueAnswerValue.toLowerCase().trim()) {
+          isEligible = true;
+        }
+      }
+
       let wonPrize = "0"; // 0 means played but didn't win
 
-      if (hasTicket) {
+      if (isEligible) {
         // Fetch prizes logic
         const prizes = await getAllPrizes();
         let totalProb = 0;
@@ -125,7 +143,7 @@ async function startServer() {
         return res.status(400).json({ error: "Failed" });
       }
 
-      res.json({ success: true, wonPrize });
+      res.json({ success: true, wonPrize, isEligible });
     } catch (error) {
       res.status(500).json({ error: "Server error" });
     }

@@ -79,6 +79,8 @@ export async function getDb(): Promise<Database> {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueQuestionId', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
   `);
  
   // Create default admin user
@@ -172,6 +174,8 @@ export async function clearDatabaseAction() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueQuestionId', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
   `);
   
   // Re-run default prizes
@@ -204,6 +208,8 @@ export async function clearSettings() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueQuestionId', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
   `);
 }
 

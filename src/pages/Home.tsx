@@ -108,7 +108,7 @@ export default function Home() {
         return;
       }
 
-      if (formData.hasTicket === 'yes') {
+      if (data.isEligible) {
         navigate('/scratchcard', { state: { wonPrize: data.wonPrize } });
       } else {
         setSuccessMsg('Obrigado por participar! Fique ligado nas nossas redes para mais novidades.');

@@ -791,6 +791,42 @@ export default function Admin() {
               </div>
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-pink-500/20 rounded-lg">
+                    <Shield className="w-5 h-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm uppercase tracking-widest">Regra de Resgate (Bônus)</h3>
+                    <p className="text-xs text-slate-500">Permite ganhar prêmio mesmo sem ter ingresso se responder algo específico.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-2xl mb-8">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Pergunta de Resgate</label>
+                    <select 
+                      value={settings.rescueQuestionId || ''} 
+                      onChange={e => setSettings({...settings, rescueQuestionId: e.target.value})}
+                      className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none"
+                    >
+                      <option value="">Nenhuma (Inativo)</option>
+                      {formFields.map((f: any) => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Valor da Resposta que Ativa</label>
+                    <input 
+                      type="text" 
+                      value={settings.rescueAnswerValue || ''} 
+                      onChange={e => setSettings({...settings, rescueAnswerValue: e.target.value})}
+                      placeholder="Ex: Sim" 
+                      className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-4 mb-6">
                   {formFields.map((field, i) => (
                     <div key={field.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-4 relative">
