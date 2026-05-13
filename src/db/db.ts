@@ -37,7 +37,9 @@ export async function getDb(): Promise<Database> {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      active INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS prizes (
@@ -58,6 +60,12 @@ export async function getDb(): Promise<Database> {
 
   try {
     await db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user';");
+  } catch (e) {
+    // Ignore if already exists
+  }
+
+  try {
+    await db.exec("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1;");
   } catch (e) {
     // Ignore if already exists
   }
@@ -164,7 +172,7 @@ export async function getUserByUsername(username: string) {
 
 export async function getAllUsers() {
   const d = await getDb();
-  return d.all('SELECT id, username, role FROM users ORDER BY id ASC');
+  return d.all('SELECT id, username, role, active FROM users ORDER BY id ASC');
 }
 
 export async function createUser(username: string, hash: string, role = 'user') {
@@ -180,6 +188,11 @@ export async function deleteUser(id: number) {
 export async function updateUserPassword(id: number, hash: string) {
   const d = await getDb();
   await d.run('UPDATE users SET password = ? WHERE id = ?', [hash, id]);
+}
+
+export async function updateUserStatus(id: number, active: number) {
+  const d = await getDb();
+  await d.run('UPDATE users SET active = ? WHERE id = ?', [active, id]);
 }
 
 // Prize Functions

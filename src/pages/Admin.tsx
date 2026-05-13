@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, Shield } from 'lucide-react';
+import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, Shield, Ban, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import * as motion from "motion/react-client";
 import { toast } from 'sonner';
@@ -82,6 +82,30 @@ export default function Admin() {
       const res = await fetch('/api/admin/users', { headers: apiHeaders });
       if (res.ok) setUsers(await res.json());
     } catch (e) {}
+  };
+
+  const toggleUserStatus = async (user: any) => {
+    if (user.username === username) {
+      toast.error("Você não pode desativar a si mesmo!");
+      return;
+    }
+    const newStatus = !user.active;
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/status`, {
+        method: 'PATCH',
+        headers: apiHeaders,
+        body: JSON.stringify({ active: newStatus })
+      });
+      if (res.ok) {
+        toast.success(`Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
+        fetchUsers();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Erro ao atualizar status");
+      }
+    } catch (e) {
+      toast.error("Erro na requisição");
+    }
   };
 
   const fetchLogs = async () => {
@@ -808,29 +832,42 @@ export default function Admin() {
                         {users.map(u => (
                           <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
                             <td className="py-4 px-4 text-slate-500">{u.id}</td>
-                            <td className="py-4 px-4 font-bold">{u.username}</td>
+                            <td className="py-4 px-4 font-bold">
+                              <span className={u.active === 0 ? "text-slate-500 line-through" : ""}>{u.username}</span>
+                              {u.active === 0 && <span className="ml-2 text-[9px] bg-red-500/20 text-red-400 px-1 rounded uppercase">Inativo</span>}
+                            </td>
                             <td className="py-4 px-4">
                               <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-pink-500/20 text-pink-400' : u.role === 'editor' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                 {u.role}
                               </span>
                             </td>
-                            <td className="py-4 px-4 text-right space-x-2">
-                              <button onClick={() => setEditingUser({ ...u, password: '' })} className="p-2 text-slate-500 hover:text-pink-400 transition-colors">
+                             <td className="py-4 px-4 text-right space-x-2">
+                              <button onClick={() => setEditingUser({ ...u, password: '' })} className="p-2 text-slate-500 hover:text-pink-400 transition-colors" title="Editar">
                                 <Edit className="w-4 h-4" />
                               </button>
                               {u.username !== username && (
-                                <button onClick={async () => {
-                                  if(!confirm('Certeza que deseja remover este usuário?')) return;
-                                  try {
-                                    const res = await fetch('/api/admin/users/' + u.id, { method: 'DELETE', headers: apiHeaders });
-                                    if(res.ok) {
-                                      toast.success("Usuário removido");
-                                      fetchUsers();
+                                <>
+                                  <button onClick={() => toggleUserStatus(u)} className={`p-2 transition-colors ${u.active === 0 ? 'text-green-500 hover:text-green-400' : 'text-slate-500 hover:text-yellow-400'}`} title={u.active === 0 ? 'Ativar' : 'Desativar'}>
+                                    {u.active === 0 ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                                  </button>
+                                  <button onClick={async () => {
+                                    if(!confirm('Certeza que deseja remover este usuário permanentemente?')) return;
+                                    try {
+                                      const res = await fetch('/api/admin/users/' + u.id, { method: 'DELETE', headers: apiHeaders });
+                                      if(res.ok) {
+                                        toast.success("Usuário removido");
+                                        fetchUsers();
+                                      } else {
+                                        const err = await res.json();
+                                        toast.error(err.error || "Erro ao remover usuário");
+                                      }
+                                    } catch(e) {
+                                      toast.error("Erro na requisição");
                                     }
-                                  } catch(e) {}
-                                }} className="p-2 text-slate-500 hover:text-red-400 transition-colors">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                  }} className="p-2 text-slate-500 hover:text-red-400 transition-colors" title="Remover">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
                               )}
                             </td>
                           </tr>

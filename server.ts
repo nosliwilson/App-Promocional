@@ -11,7 +11,7 @@ import { logSecurityEvent, getSecurityLogs, clearSecurityLogs } from "./src/lib/
 import { 
   getDb, getSettings, updateSetting, addParticipant, 
   getAllParticipants, getParticipantByEmail, backupDb, clearDatabase,
-  getUserByUsername, updateUserPassword, getAllUsers, createUser,
+  getUserByUsername, updateUserPassword, getAllUsers, createUser, updateUserStatus, deleteUser,
   getAllPrizes, addPrize, updatePrize, deletePrize, incrementPrizeRedeemed
 } from "./src/db/db.js";
 
@@ -21,6 +21,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-for-admin";
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.set('trust proxy', true);
 
   app.use(express.json({ limit: '50mb' })); // For base64 images
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -140,6 +142,11 @@ async function startServer() {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
+      if (user.active === 0) {
+        logSecurityEvent("FAILED_LOGIN", { username, ip, reason: "User inactive" });
+        return res.status(401).json({ error: "Conta desativada. Entre em contato com o administrador." });
+      }
+
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         logSecurityEvent("FAILED_LOGIN", { username, ip, reason: "Incorrect password" });
@@ -218,6 +225,19 @@ async function startServer() {
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/status", authenticateAdmin, requireRoleAdmin, async (req: any, res: any) => {
+    try {
+      const { active } = req.body;
+      if (parseInt(req.params.id) === req.userId) {
+        return res.status(400).json({ error: "Cannot deactivate yourself" });
+      }
+      await updateUserStatus(parseInt(req.params.id), active ? 1 : 0);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to update user status" });
     }
   });
 
