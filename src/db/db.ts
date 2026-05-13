@@ -62,12 +62,6 @@ export async function getDb(): Promise<Database> {
     // Ignore if already exists
   }
 
-  // Ensure first user is admin if exists, or create default admin
-  const firstUser = await db.get('SELECT id FROM users ORDER BY id ASC LIMIT 1');
-  if (firstUser) {
-    await db.exec("UPDATE users SET role = 'admin' WHERE id = " + firstUser.id);
-  }
-
   // Default settings
   await db.exec(`
     INSERT OR IGNORE INTO settings (key, value) VALUES ('appTitle', 'Promoção KPop Tour');
@@ -82,7 +76,13 @@ export async function getDb(): Promise<Database> {
   const adminExists = await db.get('SELECT * FROM users WHERE username = ?', ['admin']);
   if (!adminExists) {
     const defaultHash = await bcrypt.hash('admin', 10);
-    await db.run('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', defaultHash]);
+    await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', defaultHash, 'admin']);
+  }
+
+  // Ensure first user is admin if exists
+  const firstUser = await db.get('SELECT id FROM users ORDER BY id ASC LIMIT 1');
+  if (firstUser) {
+    await db.run("UPDATE users SET role = 'admin' WHERE id = ?", [firstUser.id]);
   }
 
   // Create default prizes if table is empty
