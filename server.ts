@@ -373,14 +373,32 @@ async function startServer() {
     res.status(404).json({ error: "Endpoint not found" });
   });
 
-  // Suspicious paths (common exploits)
-  const suspiciousRegex = /(\.php|\.env|\.git|wp-admin|wp-login|config|setup|admin\/phpinfo)/i;
+  // Suspicious paths (common exploits and bot scanners)
+  const suspiciousRegex = /(\.php|\.env|\.git|\.sqlite|\.config|\.well-known|wp-admin|wp-login|config|setup|admin\/phpinfo|cgi-bin|\.aws|\.ssh)/i;
+  
+  // Middleware to log 404s and suspicious attempts
   app.use((req, res, next) => {
-    if (suspiciousRegex.test(req.path)) {
-      const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-      logSecurityEvent("SUSPICIOUS_PATH_ACCESS", { path: req.originalUrl, ip });
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const pathRequested = req.originalUrl;
+
+    // 1. Detect known exploit patterns
+    if (suspiciousRegex.test(pathRequested)) {
+      logSecurityEvent("SUSPICIOUS_PATH_ACCESS", { path: pathRequested, ip, userAgent: req.headers['user-agent'] });
       return res.status(403).send("Forbidden");
     }
+
+    // 2. Check for "File 404s" (requests with extensions that don't exist)
+    // We only log if it has a dot (extension) and isn't handled by static/vite yet
+    // This catches bots looking for .php, .js.map, etc.
+    const hasExtension = /\.[a-z0-9]{2,4}$/i.test(pathRequested.split('?')[0]);
+    
+    // We let normal routes pass to the SPA fallback, but log file-like 404s later
+    res.on('finish', () => {
+      if (res.statusCode === 404 && (hasExtension || pathRequested.includes('..'))) {
+        logSecurityEvent("NOT_FOUND_FILE_ACCESS", { path: pathRequested, ip, method: req.method });
+      }
+    });
+
     next();
   });
 

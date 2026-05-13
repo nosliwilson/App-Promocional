@@ -863,7 +863,7 @@ export default function Admin() {
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
                 <div className="bg-[#050507] rounded-2xl p-4 font-mono text-[11px] overflow-x-auto max-h-[600px] overflow-y-auto space-y-1">
                   {securityLogs.length > 0 ? securityLogs.map((log, i) => {
-                    const isFailure = log.includes('FAILED_LOGIN') || log.includes('INVALID_API_ACCESS') || log.includes('SUSPICIOUS');
+                    const isFailure = log.includes('FAILED_LOGIN') || log.includes('INVALID_API_ACCESS') || log.includes('SUSPICIOUS') || log.includes('NOT_FOUND');
                     const isSuccess = log.includes('SUCCESS_LOGIN');
                     return (
                       <div key={i} className={`whitespace-pre-wrap py-0.5 ${isFailure ? 'text-red-400' : isSuccess ? 'text-green-400' : 'text-slate-400'}`}>
@@ -878,9 +878,12 @@ export default function Admin() {
                   <h4 className="text-xs font-bold text-blue-300 uppercase mb-2 flex items-center">
                     <Shield className="w-4 h-4 mr-2" /> Dica de Configuração (Fail2Ban)
                   </h4>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    Configure seu Fail2Ban para monitorar o arquivo <code className="bg-black/40 px-1 rounded text-pink-400">security.log</code> na raiz do projeto. 
-                    Use um regex que identifique <code className="bg-black/40 px-1 rounded text-red-400">FAILED_LOGIN</code> e capture o campo <code className="bg-black/40 px-1 rounded">"ip": "&lt;HOST&gt;"</code>.
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                    # Exemplo de regex para Fail2Ban:<br/>
+                    failregex = ^\[.*\] \[SECURITY\] (FAILED_LOGIN|SUSPICIOUS_PATH_ACCESS|NOT_FOUND_FILE_ACCESS) .* "ip": "&lt;HOST&gt;"
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    O sistema agora captura tentativas de acesso a caminhos suspeitos (.env, .php, etc) e arquivos inexistentes, permitindo banir bots automaticamente.
                   </p>
                 </div>
               </div>
