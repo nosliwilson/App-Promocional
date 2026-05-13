@@ -7,6 +7,7 @@ import os from "os";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { stringify } from "csv-stringify/sync";
+import { logSecurityEvent, getSecurityLogs, clearSecurityLogs } from "./src/lib/logger.js";
 import { 
   getDb, getSettings, updateSetting, addParticipant, 
   getAllParticipants, getParticipantByEmail, backupDb, clearDatabase,
@@ -23,6 +24,14 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' })); // For base64 images
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  
+  // Custom headers for security
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+  });
 
   // Ensure DB init
   await getDb();
@@ -125,11 +134,20 @@ async function startServer() {
     try {
       const { username, password } = req.body;
       const user = await getUserByUsername(username);
-      if (!user) return res.status(401).json({ error: "Invalid credentials" });
+      const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+      if (!user) {
+        logSecurityEvent("FAILED_LOGIN", { username, ip, reason: "User not found" });
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
       const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
+      if (!isValid) {
+        logSecurityEvent("FAILED_LOGIN", { username, ip, reason: "Incorrect password" });
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
+      logSecurityEvent("SUCCESS_LOGIN", { username, ip });
       const token = jwt.sign({ id: user.id, username: user.username, role: user.role || 'viewer' }, JWT_SECRET, { expiresIn: '8h' });
       res.json({ token, username: user.username, role: user.role || 'viewer' });
     } catch (e) {
@@ -341,6 +359,34 @@ async function startServer() {
     } catch (e) {
       res.status(500).json({ error: "Failed to clear DB" });
     }
+  });
+
+  // Security Logs API
+  app.get("/api/admin/security-logs", authenticateAdmin, requireRoleAdmin, (req, res) => {
+    res.json(getSecurityLogs());
+  });
+
+  app.post("/api/admin/security-logs/clear", authenticateAdmin, requireRoleAdmin, (req, res) => {
+    clearSecurityLogs();
+    res.json({ success: true });
+  });
+
+  // Security Monitoring Middleware for 404s / suspicious paths
+  app.use('/api/*', (req, res) => {
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    logSecurityEvent("INVALID_API_ACCESS", { path: req.originalUrl, ip, method: req.method });
+    res.status(404).json({ error: "Endpoint not found" });
+  });
+
+  // Suspicious paths (common exploits)
+  const suspiciousRegex = /(\.php|\.env|\.git|wp-admin|wp-login|config|setup|admin\/phpinfo)/i;
+  app.use((req, res, next) => {
+    if (suspiciousRegex.test(req.path)) {
+      const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      logSecurityEvent("SUSPICIOUS_PATH_ACCESS", { path: req.originalUrl, ip });
+      return res.status(403).send("Forbidden");
+    }
+    next();
   });
 
   // Vite middleware for development

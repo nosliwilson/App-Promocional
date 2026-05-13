@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree } from 'lucide-react';
+import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import * as motion from "motion/react-client";
 import { toast } from 'sonner';
@@ -17,7 +17,8 @@ export default function Admin() {
   const [settings, setSettings] = useState<any>({});
   const [prizes, setPrizes] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'participants' | 'settings' | 'prizes' | 'account' | 'form'>('participants');
+  const [securityLogs, setSecurityLogs] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'participants' | 'settings' | 'prizes' | 'account' | 'form' | 'security'>('participants');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Prize Form State
@@ -83,6 +84,25 @@ export default function Admin() {
     } catch (e) {}
   };
 
+  const fetchLogs = async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await fetch('/api/admin/security-logs', { headers: apiHeaders });
+      if (res.ok) setSecurityLogs(await res.json());
+    } catch (e) {}
+  };
+
+  const clearLogs = async () => {
+    if (!confirm("Tem certeza que deseja limpar os logs? Isso pode prejudicar o rastreamento do fail2ban.")) return;
+    try {
+      const res = await fetch('/api/admin/security-logs/clear', { method: 'POST', headers: apiHeaders });
+      if (res.ok) {
+        toast.success("Logs limpos com sucesso!");
+        fetchLogs();
+      }
+    } catch (e) {}
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -108,7 +128,10 @@ export default function Admin() {
       setParticipants(await partsRes.json());
       setSettings(await setsRes.json());
       if (prizesRes) setPrizes(await prizesRes.json());
-      if (isAdmin) fetchUsers();
+      if (isAdmin) {
+        fetchUsers();
+        fetchLogs();
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -439,6 +462,12 @@ export default function Admin() {
           <button onClick={() => setActiveTab('account')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'account' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
             <KeyRound className="w-4 h-4 mr-3" /> <span>Conta {isAdmin ? '& Usuários' : ''}</span>
           </button>
+
+          {isAdmin && (
+            <button onClick={() => setActiveTab('security')} className={`flex items-center px-4 py-3 rounded-full transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'security' ? 'bg-white/10 border border-white/20 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
+              <ShieldAlert className="w-4 h-4 mr-3" /> <span>Segurança</span>
+            </button>
+          )}
 
           <Link to="/qr" className="flex items-center px-4 py-3 rounded-full hover:bg-white/5 text-slate-400 transition-all text-xs font-bold uppercase tracking-widest">
             <QrCode className="w-4 h-4 mr-3" /> <span>QR Code</span>
@@ -811,6 +840,50 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'security' && isAdmin && (
+            <div className="flex flex-col gap-6">
+              <header className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black">Monitoramento de Segurança</h2>
+                  <p className="text-slate-400 text-sm mt-1">Logs para monitoramento e prevenção (Fail2Ban)</p>
+                </div>
+                <div className="flex gap-2">
+                   <button onClick={fetchLogs} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold hover:bg-white/10 transition-all">
+                    ATUALIZAR
+                  </button>
+                  <button onClick={clearLogs} className="px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full text-xs font-bold text-red-300 hover:bg-red-500/30 transition-all flex items-center">
+                    <Trash2 className="w-4 h-4 mr-2" /> LIMPAR LOGS
+                  </button>
+                </div>
+              </header>
+
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                <div className="bg-[#050507] rounded-2xl p-4 font-mono text-[11px] overflow-x-auto max-h-[600px] overflow-y-auto space-y-1">
+                  {securityLogs.length > 0 ? securityLogs.map((log, i) => {
+                    const isFailure = log.includes('FAILED_LOGIN') || log.includes('INVALID_API_ACCESS') || log.includes('SUSPICIOUS');
+                    const isSuccess = log.includes('SUCCESS_LOGIN');
+                    return (
+                      <div key={i} className={`whitespace-pre-wrap py-0.5 ${isFailure ? 'text-red-400' : isSuccess ? 'text-green-400' : 'text-slate-400'}`}>
+                        {log}
+                      </div>
+                    );
+                  }) : (
+                    <div className="text-slate-600 italic">Nenhum log registrado ainda.</div>
+                  )}
+                </div>
+                <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <h4 className="text-xs font-bold text-blue-300 uppercase mb-2 flex items-center">
+                    <ShieldAlert className="w-4 h-4 mr-2" /> Dica de Configuração (Fail2Ban)
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Configure seu Fail2Ban para monitorar o arquivo <code className="bg-black/40 px-1 rounded text-pink-400">security.log</code> na raiz do projeto. 
+                    Use um regex que identifique <code className="bg-black/40 px-1 rounded text-red-400">FAILED_LOGIN</code> e capture o campo <code className="bg-black/40 px-1 rounded">"ip": "&lt;HOST&gt;"</code>.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
