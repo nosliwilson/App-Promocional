@@ -157,11 +157,51 @@ export async function getAllParticipants() {
   return d.all('SELECT * FROM participants ORDER BY createdAt DESC');
 }
 
-export async function clearDatabase() {
-  if (db) await db.close();
-  db = null;
-  fs.unlinkSync(DB_PATH);
-  await getDb();
+export async function clearDatabaseAction() {
+  const d = await getDb();
+  await d.run('DELETE FROM participants');
+  await d.run('DELETE FROM prizes');
+  await d.run('DELETE FROM settings');
+  // Re-run initialization logic for defaults
+  await d.exec(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('appTitle', 'Promoção KPop Tour');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('ticketQuestionText', 'Você já possui ingresso para o show?');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('socialLinks', '{"instagram": "", "twitter": ""}');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('socialNameEnabled', 'true');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
+  `);
+  
+  // Re-run default prizes
+  const prizeCount = await d.get('SELECT COUNT(*) as count FROM prizes');
+  if (prizeCount.count === 0) {
+    await d.run('INSERT INTO prizes (name, discount, probability, maxQuantity) VALUES (?, ?, ?, ?)', ['Cupom R$ 50', '50', 0.1, 10]);
+    await d.run('INSERT INTO prizes (name, discount, probability, maxQuantity) VALUES (?, ?, ?, ?)', ['Cupom R$ 35', '35', 0.2, 50]);
+    await d.run('INSERT INTO prizes (name, discount, probability, maxQuantity) VALUES (?, ?, ?, ?)', ['Cupom R$ 20', '20', 0.3, 100]);
+  }
+}
+
+export async function clearParticipants() {
+  const d = await getDb();
+  await d.run('DELETE FROM participants');
+}
+
+export async function clearPrizes() {
+  const d = await getDb();
+  await d.run('DELETE FROM prizes');
+}
+
+export async function clearSettings() {
+  const d = await getDb();
+  await d.run('DELETE FROM settings');
+  await d.exec(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('appTitle', 'Promoção KPop Tour');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('ticketQuestionText', 'Você já possui ingresso para o show?');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('socialLinks', '{"instagram": "", "twitter": ""}');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('socialNameEnabled', 'true');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
+  `);
 }
 
 // User Functions

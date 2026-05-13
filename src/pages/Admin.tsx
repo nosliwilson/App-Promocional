@@ -150,7 +150,18 @@ export default function Admin() {
       }
 
       setParticipants(await partsRes.json());
-      setSettings(await setsRes.json());
+      const data = await setsRes.json();
+      setSettings(data);
+      if (data.appTitle) document.title = `Admin - ${data.appTitle}`;
+      if (data.favicon) {
+        let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = data.favicon;
+      }
       if (prizesRes) setPrizes(await prizesRes.json());
       if (isAdmin) {
         fetchUsers();
@@ -200,14 +211,104 @@ export default function Admin() {
 
   const downloadBackup = () => {
     fetch('/api/admin/backup', { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => res.blob())
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.blob();
+      })
       .then(blob => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'database.sqlite';
+        const date = new Date().toISOString().split('T')[0];
+        a.download = `backup-${date}.sqlite`;
         a.click();
-      });
+      }).catch(() => toast.error("Erro ao baixar backup"));
+  };
+
+  const clearParticipantsAction = async () => {
+    if (!confirm('Deseja baixar uma cópia dos inscritos antes de apagar tudo?')) {
+      // do nothing, proceed
+    } else {
+      downloadCSV();
+    }
+    
+    if (confirm('PRIMEIRA CONFIRMAÇÃO: Tem certeza que deseja apagar TODOS os inscritos?')) {
+      if (confirm('ÚLTIMA CONFIRMAÇÃO: Esta ação é IRREVERSÍVEL. Apagar agora?')) {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/admin/clear/participants', { method: 'POST', headers: apiHeaders });
+          if(res.ok) {
+            toast.success('Lista de inscritos zerada!');
+            fetchData();
+          }
+        } catch(e) {}
+        setLoading(false);
+      }
+    }
+  };
+
+  const clearPrizesAction = async () => {
+    if (confirm('PRIMEIRA CONFIRMAÇÃO: Deseja apagar todos os prêmios?')) {
+      if (confirm('ÚLTIMA CONFIRMAÇÃO: Os prêmios serão removidos permanentemente. Continuar?')) {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/admin/clear/prizes', { method: 'POST', headers: apiHeaders });
+          if(res.ok) {
+            toast.success('Lista de prêmios zerada!');
+            fetchData();
+          }
+        } catch(e) {}
+        setLoading(false);
+      }
+    }
+  };
+
+  const clearFormAction = async () => {
+    if (confirm('Deseja limpar todos os campos adicionais do formulário?')) {
+      if (confirm('Isso removerá as perguntas extras configuradas. Confirmar?')) {
+        setFormFields([]);
+        setSettings({ ...settings, customFormFields: '[]' });
+        toast.info('Campos limpos. Lembre-se de clicar em "Salvar Formulário".');
+      }
+    }
+  };
+
+  const clearSettingsAction = async () => {
+    if (confirm('PRIMEIRA CONFIRMAÇÃO: Deseja resetar TODAS as configurações para o padrão?')) {
+      if (confirm('ÚLTIMA CONFIRMAÇÃO: Cores, logos e textos voltarão ao original. Confirmar?')) {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/admin/clear/settings', { method: 'POST', headers: apiHeaders });
+          if(res.ok) {
+            toast.success('Configurações resetadas!');
+            fetchData();
+          }
+        } catch(e) {}
+        setLoading(false);
+      }
+    }
+  };
+
+  const clearDBFullAction = async () => {
+    if (confirm('Deseja realizar um BACKUP de segurança antes de zerar o banco?')) {
+      downloadBackup();
+    }
+    
+    if (confirm('RESTANTE: 1/3 - Tem certeza que deseja zerar o banco de dados (Exceto usuários)?')) {
+      if (confirm('RESTANTE: 2/3 - Esta ação apagará participantes, prêmios e configurações. Continuar?')) {
+        if (confirm('RESTANTE: 3/3 - ÚLTIMO AVISO! Clique em OK para confirmar a deleção TOTAL.')) {
+          setLoading(true);
+          try {
+            const res = await fetch('/api/admin/clear/database', { method: 'POST', headers: apiHeaders });
+            if(res.ok) {
+              toast.success('Banco de dados resetado com sucesso!');
+              fetchData();
+            }
+          } catch(e) {}
+          setLoading(false);
+        }
+      }
+    }
   };
 
   const restoreBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,12 +337,7 @@ export default function Admin() {
   };
 
   const clearDB = async () => {
-    if (!confirm('ATENÇÃO! Isso apagará TODOS os dados e configurações. Deseja realmente zerar o banco de dados?')) return;
-    
-    setLoading(true);
-    await fetch('/api/admin/clear', { method: 'POST', headers: apiHeaders });
-    toast.success('Banco de dados zerado com sucesso!');
-    fetchData();
+    clearDBFullAction();
   };
 
   // Form Builder
@@ -512,9 +608,14 @@ export default function Admin() {
                   <h2 className="text-2xl font-black">Inscritos da Promoção</h2>
                   <p className="text-slate-400 text-sm mt-1">Total: {participants.length}</p>
                 </div>
-                <button onClick={downloadCSV} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold hover:bg-white/10 transition-all flex items-center">
-                  <Download className="w-4 h-4 mr-2" /> EXPORTAR CSV
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={clearParticipantsAction} className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-bold text-red-400 hover:bg-red-500/20 transition-all flex items-center">
+                    <Trash2 className="w-3 h-3 mr-2" /> ZERAR PLANILHA
+                  </button>
+                  <button onClick={downloadCSV} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold hover:bg-white/10 transition-all flex items-center">
+                    <Download className="w-4 h-4 mr-2" /> EXPORTAR CSV
+                  </button>
+                </div>
               </header>
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-x-auto">
@@ -587,9 +688,14 @@ export default function Admin() {
 
           {activeTab === 'prizes' && (
             <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="text-2xl font-black">Premios e Sorteio</h2>
-                <p className="text-slate-400 text-sm mt-1">Gerencie os cupons, chances e quantidades</p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black">Premios e Sorteio</h2>
+                  <p className="text-slate-400 text-sm mt-1">Gerencie os cupons, chances e quantidades</p>
+                </div>
+                <button onClick={clearPrizesAction} className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-bold text-red-400 hover:bg-red-500/20 transition-all flex items-center">
+                  <Trash2 className="w-3 h-3 mr-2" /> ZERAR PREMIAÇÕES
+                </button>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -663,9 +769,14 @@ export default function Admin() {
                   <h2 className="text-2xl font-black">Formulário Customizado</h2>
                   <p className="text-slate-400 text-sm mt-1">Crie perguntas adicionais (Ex: data de interesse, etc)</p>
                 </div>
-                <button onClick={saveFormFields} className="px-4 py-2 bg-pink-500 rounded-xl font-bold tracking-widest uppercase text-xs hover:bg-pink-400 shadow-xl shadow-pink-500/20">
-                  Salvar Formulário
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={clearFormAction} className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl font-bold tracking-widest uppercase text-xs hover:bg-red-500/20 flex items-center">
+                    <Trash2 className="w-3 h-3 mr-2" /> Zerar Campos
+                  </button>
+                  <button onClick={saveFormFields} className="px-4 py-2 bg-pink-500 rounded-xl font-bold tracking-widest uppercase text-xs hover:bg-pink-400 shadow-xl shadow-pink-500/20">
+                    Salvar Formulário
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
@@ -954,6 +1065,16 @@ export default function Admin() {
                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Identidade e Cabeçalho</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Favicon Config */}
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Favicon (Ícone Aba)</label>
+                        <div className="flex gap-4 items-center">
+                          <input type="file" accept="image/png, image/x-icon, image/gif" className="text-[10px] text-slate-500" onChange={(e) => handleImageUpload('favicon', e)} />
+                          {settings.favicon && <img src={settings.favicon} alt="Favicon" className="w-8 h-8 object-contain bg-black/20 p-1 rounded" />}
+                        </div>
+                        <p className="text-[9px] text-slate-500">Aceita PNG e ICO.</p>
+                      </div>
+
                       {/* Title Config */}
                       <div className="space-y-4">
                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Título Principal</label>
@@ -1138,6 +1259,10 @@ export default function Admin() {
                       <Upload className="w-4 h-4 mr-2" /> Restaurar
                       <input type="file" accept=".sqlite" className="hidden" ref={fileInputRef} onChange={restoreBackup} />
                     </label>
+
+                    <button onClick={clearSettingsAction} className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all px-4 py-3 rounded-xl flex items-center text-xs font-bold uppercase tracking-widest">
+                      <Trash2 className="w-4 h-4 mr-2" /> Zerar Configurações
+                    </button>
 
                     <button onClick={clearDB} className="bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all px-4 py-3 rounded-xl flex items-center xl:ml-auto text-xs font-bold uppercase tracking-widest">
                       <Trash2 className="w-4 h-4 mr-2" /> Zerar Banco

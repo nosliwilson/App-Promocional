@@ -10,9 +10,10 @@ import { stringify } from "csv-stringify/sync";
 import { logSecurityEvent, getSecurityLogs, clearSecurityLogs } from "./src/lib/logger.js";
 import { 
   getDb, getSettings, updateSetting, addParticipant, 
-  getAllParticipants, getParticipantByEmail, backupDb, clearDatabase,
+  getAllParticipants, getParticipantByEmail, backupDb, 
   getUserByUsername, updateUserPassword, getAllUsers, createUser, updateUserStatus, deleteUser,
-  getAllPrizes, addPrize, updatePrize, deletePrize, incrementPrizeRedeemed
+  getAllPrizes, addPrize, updatePrize, deletePrize, incrementPrizeRedeemed,
+  clearParticipants, clearPrizes, clearSettings, clearDatabaseAction
 } from "./src/db/db.js";
 
 const upload = multer({ dest: os.tmpdir() });
@@ -346,11 +347,47 @@ async function startServer() {
   app.get("/api/admin/backup", authenticateAdmin, requireRoleAdmin, async (req, res) => {
     try {
       const dbPath = await backupDb();
-      res.download(dbPath, 'database.sqlite', async (err) => {
+      res.download(dbPath, `backup-${new Date().toISOString().split('T')[0]}.sqlite`, async (err) => {
         await getDb();
       });
     } catch (e) {
       res.status(500).json({ error: "Failed to backup" });
+    }
+  });
+
+  app.post("/api/admin/clear/participants", authenticateAdmin, requireRoleAdmin, async (req, res) => {
+    try {
+      await clearParticipants();
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Falha ao limpar participantes" });
+    }
+  });
+
+  app.post("/api/admin/clear/prizes", authenticateAdmin, requireRoleAdmin, async (req, res) => {
+    try {
+      await clearPrizes();
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Falha ao limpar prêmios" });
+    }
+  });
+
+  app.post("/api/admin/clear/settings", authenticateAdmin, requireRoleAdmin, async (req, res) => {
+    try {
+      await clearSettings();
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Falha ao limpar configurações" });
+    }
+  });
+
+  app.post("/api/admin/clear/database", authenticateAdmin, requireRoleAdmin, async (req, res) => {
+    try {
+      await clearDatabaseAction();
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: "Falha ao resetar banco de dados" });
     }
   });
 
@@ -364,15 +401,6 @@ async function startServer() {
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to restore" });
-    }
-  });
-
-  app.post("/api/admin/clear", authenticateAdmin, requireRoleAdmin, async (req, res) => {
-    try {
-      await clearDatabase();
-      res.json({ success: true });
-    } catch (e) {
-      res.status(500).json({ error: "Failed to clear DB" });
     }
   });
 
