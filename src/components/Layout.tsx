@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Instagram, Twitter, Facebook, Globe, Loader2 } from 'lucide-react';
 
@@ -22,6 +22,14 @@ export default function Layout() {
           }
           link.href = data.favicon;
         }
+      }).catch(() => {
+        // Fallback settings if fetch fails
+        setSettings({
+          appTitle: 'Promoção KPop Tour',
+          primaryColor: '#ec4899',
+          titleText: 'STRAY KIDS',
+          subtitleText: 'Excursão 2024'
+        });
       });
     
     const checkMobile = () => {

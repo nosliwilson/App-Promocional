@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { motion } from "motion/react";
 import { Download, Upload, Trash2, Settings as SettingsIcon, Users, QrCode, Gift, Lock, Loader2, KeyRound, Plus, X, Edit, ListTree, Shield, Ban, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import * as motion from "motion/react-client";
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -149,20 +149,31 @@ export default function Admin() {
         return;
       }
 
-      setParticipants(await partsRes.json());
-      const data = await setsRes.json();
-      setSettings(data);
-      if (data.appTitle) document.title = `Admin - ${data.appTitle}`;
-      if (data.favicon) {
+      if (!partsRes.ok || !setsRes.ok) {
+        throw new Error("Erro ao carregar dados básico");
+      }
+
+      const partsData = await partsRes.json();
+      setParticipants(Array.isArray(partsData) ? partsData : []);
+
+      const setsData = await setsRes.json();
+      setSettings(setsData || {});
+      
+      if (setsData?.appTitle) document.title = `Admin - ${setsData.appTitle}`;
+      if (setsData?.favicon) {
         let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
         if (!link) {
           link = document.createElement('link');
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = data.favicon;
+        link.href = setsData.favicon;
       }
-      if (prizesRes) setPrizes(await prizesRes.json());
+      
+      if (prizesRes && prizesRes.ok) {
+        const prizesData = await prizesRes.json();
+        setPrizes(Array.isArray(prizesData) ? prizesData : []);
+      }
       if (isAdmin) {
         fetchUsers();
         fetchLogs();

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, Navigate, useOutletContext } from 'react-router-dom';
-import * as motion from "motion/react-client";
+import { motion } from "motion/react";
 
 export default function Scratchcard() {
   const { settings } = useOutletContext<{ settings: any }>();

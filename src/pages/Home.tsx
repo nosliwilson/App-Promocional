@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Loader2, Ticket, CheckCircle, AlertCircle } from 'lucide-react';
-import * as motion from "motion/react-client";
+import { motion } from "motion/react";
 
 export default function Home() {
   const { settings } = useOutletContext<{ settings: any }>();
