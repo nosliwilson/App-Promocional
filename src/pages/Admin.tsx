@@ -506,7 +506,16 @@ export default function Admin() {
                           <tr className="border-b border-white/5 bg-white/[0.02]">
                             <td colSpan={6} className="py-2 px-4 text-xs text-slate-400">
                               <span className="font-bold text-pink-400 mr-2">Dados Extras:</span>
-                              {Object.entries(typeof p.customData === 'string' ? JSON.parse(p.customData) : p.customData).map(([k,v]: any) => {
+                              {Object.entries(
+                                  (() => {
+                                    try {
+                                      const data = typeof p.customData === 'string' ? JSON.parse(p.customData) : p.customData;
+                                      return typeof data === 'object' && data !== null ? data : {};
+                                    } catch {
+                                      return {};
+                                    }
+                                  })()
+                                ).map(([k,v]: any) => {
                                 const field = formFields.find(f => f.id === k);
                                 const label = field ? field.label : k;
                                 return <span key={k} className="mr-6 inline-block"><span className="text-slate-500">{label}:</span> <span className="text-white">{Array.isArray(v) ? v.join(', ') : (v || '-')}</span></span>
