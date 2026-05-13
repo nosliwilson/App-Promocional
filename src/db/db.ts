@@ -4,7 +4,11 @@ import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
-const DB_PATH = path.resolve(process.cwd(), 'database.sqlite');
+const DB_DIR = path.resolve(process.cwd(), 'db');
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
+const DB_PATH = path.resolve(DB_DIR, 'database.sqlite');
 
 let db: Database | null = null;
 
