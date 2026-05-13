@@ -99,6 +99,35 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen relative font-sans flex flex-col items-center justify-center sm:p-4 text-white">
+      {/* Dynamic Style Injection */}
+      <style>{`
+        :root {
+          --btn-bg: ${settings.buttonBgColor || settings.primaryColor || '#ec4899'};
+          --btn-hover: ${settings.buttonHoverBgColor || '#be185d'};
+          --btn-active: ${settings.buttonActiveBgColor || '#9d174d'};
+          --btn-text: ${settings.buttonTextColor || '#ffffff'};
+        }
+        .btn-custom {
+          background-color: var(--btn-bg);
+          color: var(--btn-text);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-custom:hover {
+          background-color: var(--btn-hover);
+          transform: translateY(-1px);
+        }
+        .btn-custom:active {
+          background-color: var(--btn-active);
+          transform: scale(0.97);
+        }
+        .btn-radio-selected {
+          background-color: var(--btn-bg) !important;
+          border-color: var(--btn-bg) !important;
+          color: var(--btn-text) !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+      `}</style>
+
       {/* Fixed Page Background */}
       <div 
         className="fixed inset-0 z-0 pointer-events-none" 

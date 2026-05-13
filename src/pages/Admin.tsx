@@ -1145,6 +1145,37 @@ export default function Admin() {
                             <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono" value={settings.primaryColor || '#ec4899'} onChange={e => setSettings({...settings, primaryColor: e.target.value})} />
                          </div>
                        </div>
+                       <div>
+                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Cor do Texto dos Botões</label>
+                         <div className="flex items-center gap-4">
+                            <input type="color" className="w-12 h-12 bg-transparent border-none outline-none cursor-pointer" value={settings.buttonTextColor || '#ffffff'} onChange={e => setSettings({...settings, buttonTextColor: e.target.value})} />
+                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono" value={settings.buttonTextColor || '#ffffff'} onChange={e => setSettings({...settings, buttonTextColor: e.target.value})} />
+                         </div>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                       <div>
+                         <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Botão (Fundo)</label>
+                         <div className="flex items-center gap-2">
+                            <input type="color" className="w-8 h-8 bg-transparent border-none outline-none cursor-pointer" value={settings.buttonBgColor || '#ec4899'} onChange={e => setSettings({...settings, buttonBgColor: e.target.value})} />
+                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-2 text-white font-mono text-[10px]" value={settings.buttonBgColor || '#ec4899'} onChange={e => setSettings({...settings, buttonBgColor: e.target.value})} />
+                         </div>
+                       </div>
+                       <div>
+                         <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Botão (Hover/Mouse)</label>
+                         <div className="flex items-center gap-2">
+                            <input type="color" className="w-8 h-8 bg-transparent border-none outline-none cursor-pointer" value={settings.buttonHoverBgColor || '#be185d'} onChange={e => setSettings({...settings, buttonHoverBgColor: e.target.value})} />
+                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-2 text-white font-mono text-[10px]" value={settings.buttonHoverBgColor || '#be185d'} onChange={e => setSettings({...settings, buttonHoverBgColor: e.target.value})} />
+                         </div>
+                       </div>
+                       <div>
+                         <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Botão (Clique/Ativo)</label>
+                         <div className="flex items-center gap-2">
+                            <input type="color" className="w-8 h-8 bg-transparent border-none outline-none cursor-pointer" value={settings.buttonActiveBgColor || '#9d174d'} onChange={e => setSettings({...settings, buttonActiveBgColor: e.target.value})} />
+                            <input type="text" className="flex-1 bg-[#1a1a24] border border-white/10 rounded px-2 py-2 text-white font-mono text-[10px]" value={settings.buttonActiveBgColor || '#9d174d'} onChange={e => setSettings({...settings, buttonActiveBgColor: e.target.value})} />
+                         </div>
+                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-white/5 border border-white/10 rounded-2xl">

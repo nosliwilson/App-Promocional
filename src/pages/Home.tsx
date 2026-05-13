@@ -228,7 +228,7 @@ export default function Home() {
               {settings.ticketQuestionText || 'Você já possui ingresso para o evento?'}
            </label>
            <div className="grid grid-cols-2 gap-3">
-              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'yes' ? 'bg-pink-500 border-pink-500 text-white font-bold shadow-lg shadow-pink-500/20' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'yes' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
                  <input 
                    type="radio" 
                    name="hasTicket" 
@@ -239,7 +239,7 @@ export default function Home() {
                  />
                  Sim
               </label>
-              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'no' ? 'bg-pink-500 border-pink-500 text-white font-bold shadow-lg shadow-pink-500/20' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'no' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
                  <input 
                    type="radio" 
                    name="hasTicket" 
@@ -287,12 +287,12 @@ export default function Home() {
                     {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 )}
-
+                
                 {field.type === 'radio' && (
                   <div className="space-y-2">
                     {options.map((opt: string) => (
-                      <label key={opt} className={`border border-white/10 rounded-xl py-3 px-4 flex items-center cursor-pointer transition-colors ${customData[field.id] === opt ? 'bg-pink-500/20 border-pink-500/50 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
-                        <input type="radio" required={field.required} name={`custom_${field.id}`} value={opt} checked={customData[field.id] === opt} onChange={(e) => handleCustomChange(field.id, e.target.value, 'radio')} className="mr-3 accent-pink-500" />
+                      <label key={opt} className={`border border-white/10 rounded-xl py-3 px-4 flex items-center cursor-pointer transition-colors ${customData[field.id] === opt ? 'btn-radio-selected' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                        <input type="radio" required={field.required} name={`custom_${field.id}`} value={opt} checked={customData[field.id] === opt} onChange={(e) => handleCustomChange(field.id, e.target.value, 'radio')} className="mr-3 accent-current" />
                         {opt}
                       </label>
                     ))}
@@ -304,8 +304,8 @@ export default function Home() {
                     {options.map((opt: string) => {
                       const isChecked = Array.isArray(customData[field.id]) && customData[field.id].includes(opt);
                       return (
-                        <label key={opt} className={`border border-white/10 rounded-xl py-3 px-4 flex items-center cursor-pointer transition-colors ${isChecked ? 'bg-pink-500/20 border-pink-500/50 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
-                          <input type="checkbox" value={opt} checked={isChecked} onChange={(e) => handleCustomChange(field.id, e.target.value, 'checkbox')} className="mr-3 rounded text-pink-500 focus:ring-pink-500 bg-white/10 border-white/20" />
+                        <label key={opt} className={`border border-white/10 rounded-xl py-3 px-4 flex items-center cursor-pointer transition-colors ${isChecked ? 'btn-radio-selected' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                          <input type="checkbox" value={opt} checked={isChecked} onChange={(e) => handleCustomChange(field.id, e.target.value, 'checkbox')} className="mr-3 rounded text-current focus:ring-0 bg-white/10 border-white/20" />
                           {opt}
                         </label>
                       );
@@ -320,7 +320,7 @@ export default function Home() {
         <button 
           type="submit" 
           disabled={loading || !formData.hasTicket}
-          className="w-full mt-6 py-4 bg-pink-500 rounded-2xl font-black text-sm text-white shadow-xl shadow-pink-500/20 active:scale-95 transition-all uppercase tracking-widest disabled:opacity-50 disabled:shadow-none flex justify-center items-center"
+          className="w-full mt-6 py-4 btn-custom rounded-2xl font-black text-sm shadow-xl shadow-pink-500/20 disabled:opacity-50 disabled:shadow-none flex justify-center items-center uppercase tracking-widest"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Participar'}
         </button>
