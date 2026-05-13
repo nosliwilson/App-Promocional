@@ -117,10 +117,17 @@ async function startServer() {
       const settings = await getSettings();
       const rescueQuestionId = settings.rescueQuestionId;
       const rescueAnswerValue = settings.rescueAnswerValue;
+      const scratchcardEnabled = settings.scratchcardEnabled !== 'false';
+      const ticketEnablesScratch = settings.ticketEnablesScratch !== 'false';
       
-      let isEligible = hasTicket;
+      let isEligible = false;
+
+      // 1. Check if "Sim" to ticket enables it
+      if (ticketEnablesScratch && hasTicket) {
+        isEligible = true;
+      }
       
-      // Rescue Logic
+      // 2. Rescue Logic (if answer matches, they get a chance even without ticket)
       if (!isEligible && rescueQuestionId && rescueAnswerValue && customData) {
         const answer = customData[rescueQuestionId];
         if (Array.isArray(answer)) {
@@ -130,6 +137,11 @@ async function startServer() {
         } else if (answer && answer.toString().toLowerCase().trim() === rescueAnswerValue.toLowerCase().trim()) {
           isEligible = true;
         }
+      }
+
+      // Global override: if scratchcard is disabled, no one is eligible
+      if (!scratchcardEnabled) {
+        isEligible = false;
       }
 
       let wonPrize = "0"; // 0 means played but didn't win
@@ -317,28 +329,38 @@ async function startServer() {
         formFields = typeof settings.customFormFields === 'string' ? JSON.parse(settings.customFormFields) : (settings.customFormFields || []);
       } catch(e) {}
 
-      const allKeys = new Set<string>();
+      const baseColumns = ['id', 'name', 'socialName', 'phone', 'email', 'hasTicket', 'wonPrize', 'createdAt'];
+      const customLabels = formFields.map((f: any) => f.label);
+      const columns = [...baseColumns, ...customLabels];
       
       const mappedParts = parts.map((p: any) => {
-        let customDataObj = {};
+        let customDataObj: any = {};
         try {
           if (p.customData) {
-            customDataObj = typeof p.customData === 'string' ? JSON.parse(p.customData) : p.customData;
+            customDataObj = typeof p.customData === 'string' ? JSON.parse(p.customData) : (p.customData || {});
           }
         } catch(e) {}
         
-        const { customData, ...rest } = p;
-        const row: any = { ...rest };
-        for (const [k, v] of Object.entries(customDataObj)) {
-          const field = formFields.find((f: any) => f.id === k);
-          const label = field ? field.label : k;
-          row[label] = Array.isArray(v) ? v.join(', ') : v;
+        const row: any = {
+          id: p.id,
+          name: p.name,
+          socialName: p.socialName || '',
+          phone: p.phone,
+          email: p.email,
+          hasTicket: p.hasTicket ? 'Sim' : 'Não',
+          wonPrize: p.wonPrize === '0' ? 'Nenhum' : (p.wonPrize || 'Nenhum'),
+          createdAt: p.createdAt ? new Date(p.createdAt).toLocaleString() : ''
+        };
+
+        // Add custom fields
+        for (const field of formFields) {
+          const val = customDataObj[field.id];
+          row[field.label] = Array.isArray(val) ? val.join(', ') : (val || '');
         }
-        Object.keys(row).forEach(k => allKeys.add(k));
+
         return row;
       });
 
-      const columns = Array.from(allKeys);
       const csv = stringify(mappedParts, { header: true, columns });
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="participants.csv"');

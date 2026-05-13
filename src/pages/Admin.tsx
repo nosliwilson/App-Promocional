@@ -650,61 +650,54 @@ export default function Admin() {
                       <th className="pb-3 px-2 font-medium">Nome</th>
                       <th className="pb-3 px-2 font-medium">Email</th>
                       <th className="pb-3 px-2 font-medium">Telefone</th>
+                      {formFields.map(f => (
+                        <th key={f.id} className="pb-3 px-2 font-medium">{f.label}</th>
+                      ))}
                       <th className="pb-3 px-2 font-medium">Ticket?</th>
                       <th className="pb-3 px-2 font-medium">Prêmio</th>
-                      <th className="pb-3 px-2 font-medium">Data</th>
+                      <th className="pb-3 px-2 font-medium text-right">Data</th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-200">
-                    {Array.isArray(participants) && participants.map(p => p && (
-                      <React.Fragment key={p.id}>
-                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    {Array.isArray(participants) && participants.map(p => {
+                      if (!p) return null;
+                      let customDataObj: any = {};
+                      try {
+                        customDataObj = typeof p.customData === 'string' ? JSON.parse(p.customData) : (p.customData || {});
+                      } catch(e) {}
+
+                      return (
+                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="py-3 px-2">
                             <div className="font-medium text-white">{p.name}</div>
                             {p.socialName && <div className="text-slate-500 text-xs">({p.socialName})</div>}
                           </td>
                           <td className="py-3 px-2 text-slate-400">{p.email}</td>
                           <td className="py-3 px-2 text-slate-400">{p.phone}</td>
+                          {formFields.map(f => (
+                            <td key={f.id} className="py-3 px-2 text-slate-400">
+                              {Array.isArray(customDataObj[f.id]) ? customDataObj[f.id].join(', ') : (customDataObj[f.id] || '-')}
+                            </td>
+                          ))}
                           <td className="py-3 px-2">
-                            {p.hasTicket ? <span className="text-green-400">Sim</span> : <span className="text-red-400">Não</span>}
+                            {p.hasTicket ? <span className="text-green-400 font-bold">Sim</span> : <span className="text-red-400 font-bold">Não</span>}
                           </td>
                           <td className="py-3 px-2">
                             {p.wonPrize ? (
                               p.wonPrize === "0" 
                                 ? <span className="text-slate-500">-</span>
-                                : <span className="bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded text-xs font-bold">R$ {p.wonPrize}</span>
+                                : <span className="bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap">R$ {p.wonPrize}</span>
                             ) : (
                               <span className="text-slate-500">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-2 text-slate-500 text-xs whitespace-nowrap">
+                          <td className="py-3 px-2 text-slate-500 text-[10px] whitespace-nowrap text-right">
                             {p.createdAt ? new Date(p.createdAt).toLocaleString() : '-'}
                           </td>
                         </tr>
-                        {p.customData && p.customData !== '{}' && (
-                          <tr className="border-b border-white/5 bg-white/[0.02]">
-                            <td colSpan={6} className="py-2 px-4 text-xs text-slate-400">
-                              <span className="font-bold text-pink-400 mr-2">Dados Extras:</span>
-                              {Object.entries(
-                                  (() => {
-                                    try {
-                                      const data = typeof p.customData === 'string' ? JSON.parse(p.customData) : p.customData;
-                                      return typeof data === 'object' && data !== null ? data : {};
-                                    } catch {
-                                      return {};
-                                    }
-                                  })()
-                                ).map(([k,v]: any) => {
-                                const field = Array.isArray(formFields) ? formFields.find(f => f && f.id === k) : null;
-                                const label = field ? field.label : k;
-                                return <span key={k} className="mr-6 inline-block"><span className="text-slate-500">{label}:</span> <span className="text-white">{Array.isArray(v) ? v.join(', ') : (v || '-')}</span></span>
-                              })}
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                    {participants.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-slate-500">Nenhum inscrito ainda.</td></tr>}
+                      );
+                    })}
+                    {participants.length === 0 && <tr><td colSpan={6 + formFields.length} className="py-8 text-center text-slate-500">Nenhum inscrito ainda.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -805,42 +798,6 @@ export default function Admin() {
               </div>
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-pink-500/20 rounded-lg">
-                    <Shield className="w-5 h-5 text-pink-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm uppercase tracking-widest">Regra de Resgate (Bônus)</h3>
-                    <p className="text-xs text-slate-500">Permite ganhar prêmio mesmo sem ter ingresso se responder algo específico.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-2xl mb-8">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Pergunta de Resgate</label>
-                    <select 
-                      value={settings.rescueQuestionId || ''} 
-                      onChange={e => setSettings({...settings, rescueQuestionId: e.target.value})}
-                      className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none"
-                    >
-                      <option value="">Nenhuma (Inativo)</option>
-                      {formFields.map((f: any) => (
-                        <option key={f.id} value={f.id}>{f.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Valor da Resposta que Ativa</label>
-                    <input 
-                      type="text" 
-                      value={settings.rescueAnswerValue || ''} 
-                      onChange={e => setSettings({...settings, rescueAnswerValue: e.target.value})}
-                      placeholder="Ex: Sim" 
-                      className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none"
-                    />
-                  </div>
-                </div>
-
                 <div className="space-y-4 mb-6">
                   {formFields.map((field, i) => (
                     <div key={field.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-4 relative">
@@ -1108,6 +1065,60 @@ export default function Admin() {
 
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8">
                 <form onSubmit={saveSettings} className="space-y-8">
+                  {/* Habilitação da Raspadinha */}
+                  <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-purple-400">Habilitar Área da Raspadinha</h3>
+                        <p className="text-xs text-slate-400">Se desativado, ninguém acessará a raspadinha (nem com ticket)</p>
+                      </div>
+                      <button type="button" onClick={() => setSettings({...settings, scratchcardEnabled: settings.scratchcardEnabled === 'false' ? 'true' : 'false'})} className={`w-12 h-6 rounded-full transition-all relative ${settings.scratchcardEnabled !== 'false' ? 'bg-purple-500' : 'bg-slate-700'}`}>
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.scratchcardEnabled !== 'false' ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-300 uppercase">Pergunta do Ingresso Ativa Raspadinha</h4>
+                          <p className="text-[10px] text-slate-500 font-medium italic">Se "Sim", quem tem ingresso sempre raspa.</p>
+                        </div>
+                        <button type="button" onClick={() => setSettings({...settings, ticketEnablesScratch: settings.ticketEnablesScratch === 'false' ? 'true' : 'false'})} className={`w-10 h-5 rounded-full transition-all relative ${settings.ticketEnablesScratch !== 'false' ? 'bg-pink-500' : 'bg-slate-700'}`}>
+                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.ticketEnablesScratch !== 'false' ? 'left-6' : 'left-1'}`} />
+                        </button>
+                      </div>
+
+                      <div className="bg-white/5 p-3 rounded-xl space-y-3">
+                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resgate por Pergunta Extra</h4>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Qual Pergunta?</label>
+                              <select 
+                                value={settings.rescueQuestionId || ''} 
+                                onChange={e => setSettings({...settings, rescueQuestionId: e.target.value})}
+                                className="w-full bg-[#1a1a24] border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white outline-none"
+                              >
+                                <option value="">Desativado</option>
+                                {formFields.map((f: any) => (
+                                  <option key={f.id} value={f.id}>{f.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Valor p/ Liberar</label>
+                              <input 
+                                type="text" 
+                                value={settings.rescueAnswerValue || ''} 
+                                onChange={e => setSettings({...settings, rescueAnswerValue: e.target.value})}
+                                className="w-full bg-[#1a1a24] border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white outline-none"
+                                placeholder="Ex: Sim"
+                              />
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Restrição de Acesso */}
                   <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded-2xl">
                     <div className="flex items-center justify-between">
