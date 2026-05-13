@@ -607,6 +607,20 @@ export default function Admin() {
           <button onClick={logout} className="flex items-center px-4 py-3 rounded-full hover:bg-red-500/10 text-red-400 transition-all text-xs font-bold uppercase tracking-widest mt-4">
             <Lock className="w-4 h-4 mr-3" /> <span>Sair</span>
           </button>
+
+          <div className="mt-auto pt-10 hidden md:block opacity-25 hover:opacity-100 transition-opacity">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/50 font-bold mb-1">Planejado por</p>
+              <a 
+                href="https://www.linkedin.com/in/wilsondasilvatenorio/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white hover:text-pink-400 transition-colors font-black tracking-tighter text-xs px-1"
+              >
+                WILSON TENORIO
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Main Content */}

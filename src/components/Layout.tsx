@@ -174,27 +174,42 @@ export default function Layout() {
           </main>
 
           {/* Social Links Footer */}
-          <footer className="mt-auto flex justify-center gap-4 py-8">
-            {settings.socialLinks?.instagram && (
-              <a href={settings.socialLinks.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                <Instagram className="w-5 h-5" />
+          <footer className="mt-auto flex flex-col items-center gap-6 py-8">
+            <div className="flex justify-center gap-4">
+              {settings.socialLinks?.instagram && (
+                <a href={settings.socialLinks.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {settings.socialLinks?.twitter && (
+                <a href={settings.socialLinks.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                  <Twitter className="w-5 h-5" />
+                </a>
+              )}
+              {settings.socialLinks?.facebook && (
+                <a href={settings.socialLinks.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                  <Facebook className="w-5 h-5" />
+                </a>
+              )}
+              {settings.socialLinks?.website && (
+                <a href={settings.socialLinks.website} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                  <Globe className="w-5 h-5" />
+                </a>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center gap-0.5">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold mb-1">Planejado por</p>
+              <a 
+                href="https://www.linkedin.com/in/wilsondasilvatenorio/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-pink-400 transition-colors font-black tracking-tighter text-xs flex items-center gap-1 group"
+              >
+                WILSON TENORIO
+                <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-pink-400 transition-colors"></span>
               </a>
-            )}
-            {settings.socialLinks?.twitter && (
-              <a href={settings.socialLinks.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-            )}
-            {settings.socialLinks?.facebook && (
-              <a href={settings.socialLinks.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-            )}
-            {settings.socialLinks?.website && (
-              <a href={settings.socialLinks.website} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-                <Globe className="w-5 h-5" />
-              </a>
-            )}
+            </div>
           </footer>
         </div>
       </div>
