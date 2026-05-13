@@ -981,10 +981,11 @@ export default function Admin() {
                     <textarea 
                       className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-xs focus:border-pink-500 outline-none transition-all" 
                       rows={3} 
-                      value={typeof settings.socialLinks === 'object' ? JSON.stringify(settings.socialLinks, null, 2) : settings.socialLinks} 
+                      value={settings && (typeof settings.socialLinks === 'object' ? JSON.stringify(settings.socialLinks, null, 2) : settings.socialLinks) || ''} 
                       onChange={e => {
                         try {
-                          const parsed = JSON.parse(e.target.value);
+                          const val = e.target.value;
+                          const parsed = val ? JSON.parse(val) : {};
                           setSettings({...settings, socialLinks: parsed});
                         } catch {
                           setSettings({...settings, socialLinks: e.target.value});
