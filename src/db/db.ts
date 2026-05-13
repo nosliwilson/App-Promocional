@@ -78,8 +78,9 @@ export async function getDb(): Promise<Database> {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('socialNameEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
   `);
-
+ 
   // Create default admin user
   const adminExists = await db.get('SELECT * FROM users WHERE username = ?', ['admin']);
   if (!adminExists) {
@@ -170,6 +171,7 @@ export async function clearDatabaseAction() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('socialNameEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
   `);
   
   // Re-run default prizes
@@ -201,6 +203,7 @@ export async function clearSettings() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('socialNameEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('backgroundImage', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('logoImage', '');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('adminBrand', 'K-TOUR');
   `);
 }
 

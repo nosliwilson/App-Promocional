@@ -564,7 +564,7 @@ export default function Admin() {
         <div className="w-full md:w-64 flex-shrink-0 flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-3 overflow-x-auto pb-2">
           <div className="p-2 hidden md:block mb-6">
             <h1 className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 leading-none">
-              K-TOUR<br/>ADMIN
+              {settings.adminBrand || (import.meta as any).env.VITE_ADMIN_BRAND || 'K-TOUR'}<br/>ADMIN
             </h1>
             <p className="text-slate-400 font-medium italic text-xs mt-2">Olá, {username}</p>
             <p className="text-pink-500/80 font-bold uppercase text-[9px] tracking-widest mt-1">Nível: {role}</p>
@@ -1084,6 +1084,12 @@ export default function Admin() {
                           {settings.favicon && <img src={settings.favicon} alt="Favicon" className="w-8 h-8 object-contain bg-black/20 p-1 rounded" />}
                         </div>
                         <p className="text-[9px] text-slate-500">Aceita PNG e ICO.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Branding Admin (Sidebar)</label>
+                        <input type="text" className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white" value={settings.adminBrand || ''} placeholder="Ex: K-TOUR" onChange={e => setSettings({...settings, adminBrand: e.target.value})} />
+                        <p className="text-[9px] text-slate-500 italic">Altera o nome que aparece no canto superior do painel administrativo.</p>
                       </div>
 
                       {/* Title Config */}
