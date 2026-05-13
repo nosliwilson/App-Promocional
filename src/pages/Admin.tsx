@@ -844,6 +844,12 @@ export default function Admin() {
                       {/* Title Config */}
                       <div className="space-y-4">
                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Título Principal</label>
+                        <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" value={settings.appTitle || ''} placeholder="Promoção KPop Tour" onChange={e => setSettings({...settings, appTitle: e.target.value})} />
+                      </div>
+
+                      {/* Title Type Config (Existing) */}
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Tipo de Cabeçalho</label>
                         <select value={settings.titleType || 'text'} onChange={e => setSettings({...settings, titleType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-xs text-white">
                           <option value="text">Texto</option>
                           <option value="image">Imagem/Logo</option>
@@ -858,7 +864,7 @@ export default function Admin() {
                         )}
                       </div>
 
-                      {/* Subtitle Config */}
+                      {/* Subtitle Config (Moving/Keeping) */}
                       <div className="space-y-4">
                         <label className="block text-xs font-bold uppercase tracking-widest text-slate-400">Subtítulo</label>
                         <select value={settings.subtitleType || 'text'} onChange={e => setSettings({...settings, subtitleType: e.target.value})} className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2 text-xs text-white">
