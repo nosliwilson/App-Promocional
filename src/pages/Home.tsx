@@ -26,7 +26,7 @@ export default function Home() {
     socialName: '',
     phone: '',
     email: '',
-    hasTicket: ''
+    hasTicket: settings.showTicketQuestion === 'false' ? 'yes' : ''
   });
 
   const [customData, setCustomData] = useState<Record<string, any>>({});
@@ -223,35 +223,37 @@ export default function Home() {
            />
         </div>
 
-         <div className="pt-2">
-           <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: getHexRgba(settings.questionColor || '#cbd5e1', settings.questionOpacity ?? 100) }}>
-              {settings.ticketQuestionText || 'Você já possui ingresso para o evento?'}
-           </label>
-           <div className="grid grid-cols-2 gap-3">
-              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'yes' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
-                 <input 
-                   type="radio" 
-                   name="hasTicket" 
-                   value="yes" 
-                   checked={formData.hasTicket === 'yes'}
-                   onChange={handleChange}
-                   className="hidden" 
-                 />
-                 Sim
-              </label>
-              <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'no' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
-                 <input 
-                   type="radio" 
-                   name="hasTicket" 
-                   value="no" 
-                   checked={formData.hasTicket === 'no'}
-                   onChange={handleChange}
-                   className="hidden" 
-                 />
-                 Não
-              </label>
-           </div>
-        </div>
+        {settings.showTicketQuestion !== 'false' && (
+          <div className="pt-2">
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: getHexRgba(settings.questionColor || '#cbd5e1', settings.questionOpacity ?? 100) }}>
+               {settings.ticketQuestionText || 'Você já possui ingresso para o evento?'}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+               <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'yes' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                  <input 
+                    type="radio" 
+                    name="hasTicket" 
+                    value="yes" 
+                    checked={formData.hasTicket === 'yes'}
+                    onChange={handleChange}
+                    className="hidden" 
+                  />
+                  Sim
+               </label>
+               <label className={`border border-white/10 rounded-xl py-3 px-4 flex items-center justify-center cursor-pointer transition-colors ${formData.hasTicket === 'no' ? 'btn-radio-selected font-bold' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                  <input 
+                    type="radio" 
+                    name="hasTicket" 
+                    value="no" 
+                    checked={formData.hasTicket === 'no'}
+                    onChange={handleChange}
+                    className="hidden" 
+                  />
+                  Não
+               </label>
+            </div>
+          </div>
+        )}
 
         {/* Custom Fields */}
         {(() => {
@@ -319,7 +321,7 @@ export default function Home() {
 
         <button 
           type="submit" 
-          disabled={loading || !formData.hasTicket}
+          disabled={loading || (settings.showTicketQuestion !== 'false' && !formData.hasTicket)}
           className="w-full mt-6 py-4 btn-custom rounded-2xl font-black text-sm shadow-xl shadow-pink-500/20 disabled:opacity-50 disabled:shadow-none flex justify-center items-center uppercase tracking-widest"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Participar'}

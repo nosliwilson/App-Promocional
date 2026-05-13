@@ -1080,6 +1080,16 @@ export default function Admin() {
                     <div className="pt-2 border-t border-white/5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
+                          <h4 className="text-xs font-bold text-slate-300 uppercase">Mostrar Pergunta de Ingresso</h4>
+                          <p className="text-[10px] text-slate-500 font-medium italic">Se desativado, todos os inscritos poderão raspar.</p>
+                        </div>
+                        <button type="button" onClick={() => setSettings({...settings, showTicketQuestion: settings.showTicketQuestion === 'false' ? 'true' : 'false'})} className={`w-10 h-5 rounded-full transition-all relative ${settings.showTicketQuestion !== 'false' ? 'bg-blue-500' : 'bg-slate-700'}`}>
+                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.showTicketQuestion !== 'false' ? 'left-6' : 'left-1'}`} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
                           <h4 className="text-xs font-bold text-slate-300 uppercase">Pergunta do Ingresso Ativa Raspadinha</h4>
                           <p className="text-[10px] text-slate-500 font-medium italic">Se "Sim", quem tem ingresso sempre raspa.</p>
                         </div>

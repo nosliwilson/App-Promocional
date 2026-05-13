@@ -87,6 +87,7 @@ export async function getDb(): Promise<Database> {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('scratchcardEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('ticketEnablesScratch', 'true');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('showTicketQuestion', 'true');
   `);
  
   // Create default admin user
@@ -184,6 +185,7 @@ export async function clearDatabaseAction() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('scratchcardEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('ticketEnablesScratch', 'true');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('showTicketQuestion', 'true');
   `);
   
   // Re-run default prizes
@@ -220,6 +222,7 @@ export async function clearSettings() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('rescueAnswerValue', '');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('scratchcardEnabled', 'true');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('ticketEnablesScratch', 'true');
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('showTicketQuestion', 'true');
   `);
 }
 

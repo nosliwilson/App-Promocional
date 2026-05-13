@@ -119,11 +119,15 @@ async function startServer() {
       const rescueAnswerValue = settings.rescueAnswerValue;
       const scratchcardEnabled = settings.scratchcardEnabled !== 'false';
       const ticketEnablesScratch = settings.ticketEnablesScratch !== 'false';
+      const showTicketQuestion = settings.showTicketQuestion !== 'false';
       
       let isEligible = false;
 
-      // 1. Check if "Sim" to ticket enables it
-      if (ticketEnablesScratch && hasTicket) {
+      if (!showTicketQuestion) {
+        // If ticket question is hidden, we assume the initial participation is the gate
+        isEligible = true;
+      } else if (ticketEnablesScratch && hasTicket) {
+        // 1. Check if "Sim" to ticket enables it
         isEligible = true;
       }
       
@@ -534,9 +538,6 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
-  });
-  app.use((req, res) => {
-    res.status(404).send("Página não encontrada");
   });
 }
 
